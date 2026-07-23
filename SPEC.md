@@ -20,12 +20,13 @@ The UX and UI design must be modern and beautiful, evoking the simplicty and ele
         - Pre-training
         - Supervised fine-tuning
         - Preference fine-tuning
-    - Foundations for Agentic use
+    - Foundations for Agentic use:
         - Tool calling
         - Skills
         - MCP servers
         - Demo of an AI agent
-- Visualisations must utilise 3D graphics
+- Visualisations must utilise 3D graphics.
+- Every element in the UI which the user can interact with must have associated unit tests, and every transition state in the UI must be validated with screenshots.
 
 ## References
 
