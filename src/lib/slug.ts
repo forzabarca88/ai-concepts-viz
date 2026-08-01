@@ -30,3 +30,15 @@ export const SLUG_SECTION_MAP: Record<string, string> = {
 export function getSectionForSlug(slug: string): string {
   return SLUG_SECTION_MAP[slug] ?? 'other';
 }
+
+/**
+ * Resolve a path under the configured base URL (handles GitHub Pages subpath).
+ * Use this for all internal navigation links.
+ */
+export function url(path: string): string {
+  // import.meta.env.BASE_URL is set by Astro from the `base` config
+  const base = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '';
+  const normalizedBase = base.replace(/\/$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}

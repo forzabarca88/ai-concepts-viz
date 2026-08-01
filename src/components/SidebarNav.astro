@@ -5,6 +5,12 @@ interface Props {
 
 const { activeSlug = '' } = Astro.props;
 
+// Resolve internal links under the configured base (e.g. /ai-concepts-viz/ on GitHub Pages)
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
+
 // Section groups with accent colors
 const sections = [
   {
@@ -62,7 +68,7 @@ function isActive(slug: string, activeSlug: string): boolean {
   <!-- Site title -->
   <div class="px-6 pt-8 pb-6">
     <a
-      href="/"
+      href={link('/')}
       class="block font-heading text-xl font-semibold text-near-black tracking-tight hover:text-blue-violet transition-colors duration-200"
     >
       AI Concepts
@@ -94,7 +100,7 @@ function isActive(slug: string, activeSlug: string): boolean {
               return (
                 <li>
                   <a
-                    href={item.slug === '#' ? '#' : `/${item.slug}`}
+                    href={item.slug === '#' ? '#' : link(`/${item.slug}`)}
                     class={[
                       'block px-3 py-1.5 rounded-md text-sm font-body transition-all duration-200',
                       active

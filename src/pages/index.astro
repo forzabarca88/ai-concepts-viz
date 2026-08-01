@@ -4,6 +4,11 @@ import SidebarNav from '../components/SidebarNav.astro';
 import BottomNav from '../components/BottomNav.astro';
 import MainContent from '../components/MainContent.astro';
 import NextSteps from '../components/NextSteps.astro';
+
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
 ---
 
 <Layout title="AI Concepts Visualized">
@@ -24,7 +29,7 @@ import NextSteps from '../components/NextSteps.astro';
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- Core Concepts card -->
       <a
-        href="/core-concepts"
+        href={link('/core-concepts')}
         class="group block p-6 rounded-lg border border-gray-200 hover:border-blue-violet/40 hover:shadow-medium transition-all duration-200"
       >
         <span class="inline-block w-2 h-2 rounded-full bg-blue-violet mb-3" />
@@ -38,7 +43,7 @@ import NextSteps from '../components/NextSteps.astro';
 
       <!-- Training Stages card -->
       <a
-        href="/training-stages"
+        href={link('/training-stages')}
         class="group block p-6 rounded-lg border border-gray-200 hover:border-coral/40 hover:shadow-medium transition-all duration-200"
       >
         <span class="inline-block w-2 h-2 rounded-full bg-coral mb-3" />
@@ -52,7 +57,7 @@ import NextSteps from '../components/NextSteps.astro';
 
       <!-- Agentic Use card -->
       <a
-        href="/agentic-use"
+        href={link('/agentic-use')}
         class="group block p-6 rounded-lg border border-gray-200 hover:border-teal/40 hover:shadow-medium transition-all duration-200"
       >
         <span class="inline-block w-2 h-2 rounded-full bg-teal mb-3" />
@@ -68,9 +73,9 @@ import NextSteps from '../components/NextSteps.astro';
     <NextSteps
       accentColor="var(--color-blue-violet)"
       items={[
-        { label: 'Core Concepts', href: '/core-concepts', description: 'Data, tokenization, and parameters' },
-        { label: 'Training Stages', href: '/training-stages', description: 'Pre-training, SFT, and preference tuning' },
-        { label: 'Agentic Use', href: '/agentic-use', description: 'Tool calling, skills, and MCP servers' },
+        { label: 'Core Concepts', href: link('/core-concepts'), description: 'Data, tokenization, and parameters' },
+        { label: 'Training Stages', href: link('/training-stages'), description: 'Pre-training, SFT, and preference tuning' },
+        { label: 'Agentic Use', href: link('/agentic-use'), description: 'Tool calling, skills, and MCP servers' },
       ]}
     />
   </MainContent>

@@ -6,6 +6,11 @@ import MainContent from '../../components/MainContent.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import ConceptCard from '../../components/ConceptCard.astro';
 import NextSteps from '../../components/NextSteps.astro';
+
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
 ---
 
 <Layout title="Training Stages — AI Concepts Visualized" description="From raw model to helpful assistant: pre-training, supervised fine-tuning, and preference tuning.">
@@ -13,7 +18,7 @@ import NextSteps from '../../components/NextSteps.astro';
   <BottomNav activeTab="training" />
   <MainContent>
     <Breadcrumbs items={[
-      { label: 'Home', href: '/' },
+      { label: 'Home', href: link('/') },
       { label: 'Training Stages' },
     ]} />
 
@@ -71,7 +76,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Pre-training"
         description="The foundation stage — a transformer devours trillions of tokens to learn language, facts, and reasoning patterns from raw text."
-        href="/pre-training"
+        href={link('/pre-training')}
         accentColor="coral"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +87,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Supervised Fine-Tuning"
         description="Teaching the model to follow instructions — curated Q&A pairs shape the base model into a helpful assistant."
-        href="/sft"
+        href={link('/sft')}
         accentColor="coral"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -93,7 +98,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Preference Tuning"
         description="Aligning outputs to human values — reward models and RLHF steer the assistant toward safe, useful, and honest responses."
-        href="/preference-tuning"
+        href={link('/preference-tuning')}
         accentColor="coral"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -105,7 +110,7 @@ import NextSteps from '../../components/NextSteps.astro';
     <NextSteps
       accentColor="var(--color-coral)"
       items={[
-        { label: 'Agentic Use', href: '/agentic-use', description: 'Tool calling, skills, and autonomous agents' },
+        { label: 'Agentic Use', href: link('/agentic-use'), description: 'Tool calling, skills, and autonomous agents' },
       ]}
     />
   </MainContent>

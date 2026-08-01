@@ -6,6 +6,11 @@ import MainContent from '../../components/MainContent.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import ConceptCard from '../../components/ConceptCard.astro';
 import NextSteps from '../../components/NextSteps.astro';
+
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
 ---
 
 <Layout title="Core Concepts — AI Concepts Visualized" description="The foundational building blocks of large language models: data, tokenization, and parameters.">
@@ -13,7 +18,7 @@ import NextSteps from '../../components/NextSteps.astro';
   <BottomNav activeTab="core" />
   <MainContent>
     <Breadcrumbs items={[
-      { label: 'Home', href: '/' },
+      { label: 'Home', href: link('/') },
       { label: 'Core Concepts' },
     ]} />
 
@@ -38,7 +43,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Data"
         description="The raw text, code, and knowledge that models are trained on — from web crawls to curated corpora."
-        href="/data"
+        href={link('/data')}
         accentColor="blue-violet"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -51,7 +56,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Tokenization"
         description="How models convert raw text into numeric sequences — the bridge between human language and machine computation."
-        href="/tokenization"
+        href={link('/tokenization')}
         accentColor="coral"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -62,7 +67,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Parameters"
         description="The billions of weights and biases that encode a model's knowledge — the scale that drives capability."
-        href="/parameters"
+        href={link('/parameters')}
         accentColor="teal"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -75,7 +80,7 @@ import NextSteps from '../../components/NextSteps.astro';
     <NextSteps
       accentColor="var(--color-blue-violet)"
       items={[
-        { label: 'Training Stages', href: '/training-stages', description: 'From base model to helpful assistant' },
+        { label: 'Training Stages', href: link('/training-stages'), description: 'From base model to helpful assistant' },
       ]}
     />
   </MainContent>

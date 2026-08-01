@@ -5,6 +5,11 @@ interface Props {
 
 const { activeTab = 'core' } = Astro.props;
 
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
+
 function tabClass(isActive: boolean): string {
   return isActive
     ? 'flex flex-col items-center gap-0.5 px-4 py-1.5 min-w-0 transition-colors duration-200 text-near-black'
@@ -21,7 +26,7 @@ function labelClass(isActive: boolean): string {
   <div class="flex items-center justify-around max-w-lg mx-auto h-14">
 
     <!-- Core Concepts tab -->
-    <a href="/" class={tabClass(activeTab === 'core')}>
+    <a href={link('/')} class={tabClass(activeTab === 'core')}>
       {activeTab === 'core' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
       <span class="w-5 h-5">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -34,7 +39,7 @@ function labelClass(isActive: boolean): string {
     </a>
 
     <!-- Training tab -->
-    <a href="/pre-training" class={tabClass(activeTab === 'training')}>
+    <a href={link('/pre-training')} class={tabClass(activeTab === 'training')}>
       {activeTab === 'training' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
       <span class="w-5 h-5">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -47,7 +52,7 @@ function labelClass(isActive: boolean): string {
     </a>
 
     <!-- Agentic tab -->
-    <a href="/agentic-use" class={tabClass(activeTab === 'agentic')}>
+    <a href={link('/agentic-use')} class={tabClass(activeTab === 'agentic')}>
       {activeTab === 'agentic' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
       <span class="w-5 h-5">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

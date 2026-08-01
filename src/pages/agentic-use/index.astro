@@ -6,6 +6,11 @@ import MainContent from '../../components/MainContent.astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
 import ConceptCard from '../../components/ConceptCard.astro';
 import NextSteps from '../../components/NextSteps.astro';
+
+const base = (import.meta.env.BASE_URL ?? '').replace(/\/$/, '');
+function link(href: string): string {
+  return href.startsWith('/') ? `${base}${href}` : href;
+}
 ---
 
 <Layout title="Agentic Use — AI Concepts Visualized" description="AI agents as capable assistants: tool calling, skills, MCP servers, and autonomous agent demos.">
@@ -13,7 +18,7 @@ import NextSteps from '../../components/NextSteps.astro';
   <BottomNav activeTab="agentic" />
   <MainContent>
     <Breadcrumbs items={[
-      { label: 'Home', href: '/' },
+      { label: 'Home', href: link('/') },
       { label: 'Agentic Use' },
     ]} />
 
@@ -39,7 +44,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Tool Calling"
         description="How models learn to invoke external tools — from function definitions to structured JSON arguments and real-world execution."
-        href="/tool-calling"
+        href={link('/tool-calling')}
         accentColor="teal"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -54,7 +59,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Skills"
         description="Reusable knowledge packages that teach agents domain-specific expertise — from coding patterns to data analysis workflows."
-        href="/skills"
+        href={link('/skills')}
         accentColor="teal"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -67,7 +72,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="MCP Servers"
         description="The Model Context Protocol — a standardized way for agents to connect to data sources, tools, and other services."
-        href="/mcp-servers"
+        href={link('/mcp-servers')}
         accentColor="teal"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -79,7 +84,7 @@ import NextSteps from '../../components/NextSteps.astro';
       <ConceptCard
         title="Agent Demo"
         description="See it all in action — an interactive demo of an autonomous agent solving real tasks using tools, skills, and MCP together."
-        href="/agent-demo"
+        href={link('/agent-demo')}
         accentColor="teal"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -91,7 +96,7 @@ import NextSteps from '../../components/NextSteps.astro';
     <NextSteps
       accentColor="var(--color-teal)"
       items={[
-        { label: 'Core Concepts', href: '/core-concepts', description: 'Start from the beginning — data, tokens, and parameters' },
+        { label: 'Core Concepts', href: link('/core-concepts'), description: 'Start from the beginning — data, tokens, and parameters' },
       ]}
     />
   </MainContent>
