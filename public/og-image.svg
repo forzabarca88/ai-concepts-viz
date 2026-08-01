@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1D1D1F"/>
+  <text x="600" y="280" text-anchor="middle" font-family="system-ui, sans-serif" font-size="48" font-weight="700" fill="#FF6B50">AI Concepts</text>
+  <text x="600" y="340" text-anchor="middle" font-family="system-ui, sans-serif" font-size="36" fill="#A3A3A3">Visualized</text>
+  <text x="600" y="400" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" fill="#737373">An interactive guide to understanding how LLMs work</text>
+</svg>

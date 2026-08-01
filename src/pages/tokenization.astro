@@ -1,0 +1,18 @@
+---
+import Layout from '../components/Layout.astro';
+import SidebarNav from '../components/SidebarNav.astro';
+import BottomNav from '../components/BottomNav.astro';
+import MainContent from '../components/MainContent.astro';
+import TokenizationContent from '../components/TokenizationContent.astro';
+---
+
+<Layout
+  title="Tokenization — AI Concepts Visualized"
+  description="How large language models convert text into numbers: the bridge between human language and machine computation."
+>
+  <SidebarNav activeSlug="tokenization" />
+  <BottomNav activeTab="core" />
+  <MainContent>
+    <TokenizationContent />
+  </MainContent>
+</Layout>

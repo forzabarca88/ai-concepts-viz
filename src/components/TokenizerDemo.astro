@@ -1,0 +1,170 @@
+---
+// TokenizerDemo — Interactive tokenizer visualization component.
+// Client-side interactivity via embedded <script> block.
+// Uses data-* attributes for reliable DOM element references (not scoped by Astro).
+
+interface Props {
+  containerClass?: string;
+}
+
+const { containerClass = '' } = Astro.props;
+---
+
+<!-- Container — data attribute for JS scoping -->
+<div
+  data-tokenizer-root
+  class={`rounded-lg border border-gray-200 bg-white shadow-subtle overflow-hidden ${containerClass}`}
+>
+  <!-- Header -->
+  <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+    <h3 class="text-sm font-heading font-medium text-near-black tracking-tight mb-1">
+      Interactive Tokenizer
+    </h3>
+    <p class="text-xs text-gray-500">
+      Type text below to see how a tokenizer breaks it into subword tokens.
+    </p>
+  </div>
+
+  <!-- Input area -->
+  <div class="px-5 py-4">
+    <label
+      for="tokenizer-input"
+      class="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2"
+    >
+      Input text
+    </label>
+    <textarea
+      id="tokenizer-input"
+      data-tokenizer-textarea
+      rows="3"
+      class="w-full px-3 py-2 text-sm font-mono text-near-black bg-gray-50 border border-gray-200 rounded-md resize-none focus:border-blue-violet focus:ring-1 focus:ring-blue-violet/20 transition-colors duration-150"
+      placeholder="Type something here..."
+    />
+  </div>
+
+  <!-- Preset buttons -->
+  <div class="px-5 pb-4">
+    <label class="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
+      Presets
+    </label>
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Preset examples">
+      <button
+        type="button"
+        data-tokenizer-preset
+        data-text="Hello world"
+        aria-label="Load preset: Hello world"
+        class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-blue-violet hover:text-blue-violet transition-colors duration-150"
+      >
+        "Hello world"
+      </button>
+      <button
+        type="button"
+        data-tokenizer-preset
+        data-text="The quick brown fox"
+        aria-label="Load preset: The quick brown fox"
+        class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-blue-violet hover:text-blue-violet transition-colors duration-150"
+      >
+        "The quick brown fox"
+      </button>
+      <button
+        type="button"
+        data-tokenizer-preset
+        data-text="I love AI!"
+        aria-label="Load preset: I love AI!"
+        class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-blue-violet hover:text-blue-violet transition-colors duration-150"
+      >
+        "I love AI!"
+      </button>
+    </div>
+  </div>
+
+  <!-- Token visualization -->
+  <div class="px-5 pb-4">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-xs font-mono uppercase tracking-widest text-gray-400">
+        Tokens
+      </span>
+      <div class="flex items-center gap-4">
+        <span data-tokenizer-count class="text-xs font-mono text-blue-violet" aria-live="polite">
+          0 tokens
+        </span>
+        <span data-tokenizer-vocab class="text-xs font-mono text-gray-400">
+          vocab: —
+        </span>
+      </div>
+    </div>
+
+    <!-- Token display area -->
+    <div
+      data-tokenizer-display
+      role="region"
+      aria-label="Token breakdown"
+      class="min-h-[60px] p-3 rounded-md bg-gray-50 border border-gray-100 flex flex-wrap gap-1.5 items-start"
+    >
+      <p class="text-xs text-gray-400 italic w-full text-center py-4">
+        Tokens will appear here as you type...
+      </p>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="px-5 py-3 border-t border-gray-100 bg-gray-50">
+    <p class="text-xs text-gray-500">
+      Each colored block represents one token. The number is its vocabulary ID.
+      Whitespace tokens are shown in gray. Unknown characters map to &lt;unk&gt;.
+    </p>
+  </div>
+</div>
+
+<style>
+  /* Token block styles */
+  .token-block {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.3;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+    white-space: nowrap;
+  }
+
+  .token-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .token-block .token-text {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .token-block .token-id {
+    font-size: 9px;
+    opacity: 0.7;
+  }
+
+  .token-block.ws {
+    background-color: #f5f5f5;
+    color: #a3a3a3;
+    border: 1px dashed #d4d4d4;
+  }
+
+  .token-block.ws .token-text::before {
+    content: '"\00a0"';
+    font-size: 9px;
+    opacity: 0.5;
+  }
+
+  /* Active preset button */
+  [data-tokenizer-preset].active {
+    border-color: #5E5CE6;
+    color: #5E5CE6;
+    background-color: #5E5CE610;
+  }
+</style>
+
+<script src="../lib/tokenizer-demo-client.js"></script>

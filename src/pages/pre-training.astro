@@ -1,0 +1,202 @@
+---
+import Layout from '../components/Layout.astro';
+import SidebarNav from '../components/SidebarNav.astro';
+import BottomNav from '../components/BottomNav.astro';
+import MainContent from '../components/MainContent.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import LossCurve from '../components/LossCurve.astro';
+import NextSteps from '../components/NextSteps.astro';
+---
+
+<Layout
+  title="Pre-training — AI Concepts Visualized"
+  description="The foundation stage of LLM training: how models learn language, facts, and reasoning from trillions of tokens."
+>
+  <SidebarNav activeSlug="pre-training" />
+  <BottomNav activeTab="training" />
+  <MainContent>
+    <Breadcrumbs items={[
+      { label: 'Home', href: '/' },
+      { label: 'Training Stages', href: '/training-stages' },
+      { label: 'Pre-training' },
+    ]} />
+
+    <!-- Hero -->
+    <header class="mb-12">
+      <span class="inline-flex items-center gap-2 mb-4">
+        <span class="w-2 h-2 rounded-full bg-coral" />
+        <span class="text-xs font-mono uppercase tracking-widest text-gray-400">Stage 1 of 3</span>
+      </span>
+      <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+        Pre-training
+      </h1>
+      <p class="text-base text-gray-500 leading-relaxed max-w-prose mb-4">
+        Imagine reading every book, article, and conversation ever published — then being asked to
+        predict the next word. That's pre-training: the massive foundation stage where a raw
+        transformer model learns the patterns of language itself.
+      </p>
+      <div class="flex items-center gap-2 text-sm text-coral">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5z" />
+          <path d="M6 7h10M6 12h14M6 17h8" />
+        </svg>
+        <span class="font-medium">Reading all the books</span>
+      </div>
+    </header>
+
+    <!-- Loss curve visualization -->
+    <section class="mb-12">
+      <LossCurve />
+    </section>
+
+    <!-- Why more data = better -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        Why More Data Means Better Understanding
+      </h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">
+        Pre-training scales remarkably well. The more diverse text a model sees, the broader its
+        knowledge and the stronger its reasoning. This isn't just about quantity — it's about
+        exposure to patterns the model couldn't learn from a smaller corpus.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center mb-3">
+            <span class="text-sm font-mono font-bold text-coral">1</span>
+          </div>
+          <h3 class="text-sm font-heading font-medium text-near-black mb-1">Language</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Grammar, syntax, and vocabulary emerge from exposure to billions of sentences across
+            hundreds of domains.
+          </p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center mb-3">
+            <span class="text-sm font-mono font-bold text-coral">2</span>
+          </div>
+          <h3 class="text-sm font-heading font-medium text-near-black mb-1">World Knowledge</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Facts about science, history, geography, and culture are absorbed as statistical
+            patterns in text.
+          </p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center mb-3">
+            <span class="text-sm font-mono font-bold text-coral">3</span>
+          </div>
+          <h3 class="text-sm font-heading font-medium text-near-black mb-1">Reasoning</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Logical patterns in code, math proofs, and analytical writing teach the model to
+            think step by step.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data curation pipeline -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        The Data Curation Pipeline
+      </h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">
+        Not all internet text makes the cut. A rigorous curation pipeline filters trillions of
+        raw tokens down to a high-quality training set. Every stage removes noise while preserving
+        the signal the model needs to learn from.
+      </p>
+      <div class="space-y-4">
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">1</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Raw Collection</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Web crawls, licensed books, public code repositories, and academic papers feed the
+              pipeline. Sources include Common Crawl, Wikipedia, GitHub, and arXiv.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">2</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Cleaning</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Strip HTML tags, remove boilerplate (nav bars, ads, footers), fix encoding issues,
+              and discard binary or garbled content.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">3</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Quality Filtering</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Classifier models rank documents by readability, factual density, and language.
+              Spam, toxic content, and low-quality auto-generated text get filtered out.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">4</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Deduplication</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Remove exact and near-duplicate documents across sources. Prevents the model from
+              overfitting to overrepresented content.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">5</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Balanced Sampling</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Curate a domain-balanced mix: code, academic text, web content, books, and
+              conversational data. The final corpus is what the model actually trains on.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key metrics -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        Scale of Modern Pre-training
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-100">
+          <div class="text-xl font-mono font-bold text-coral mb-1">100B+</div>
+          <div class="text-xs font-mono uppercase tracking-widest text-gray-400">Parameters</div>
+        </div>
+        <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-100">
+          <div class="text-xl font-mono font-bold text-coral mb-1">2T</div>
+          <div class="text-xs font-mono uppercase tracking-widest text-gray-400">Tokens</div>
+        </div>
+        <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-100">
+          <div class="text-xl font-mono font-bold text-coral mb-1">100</div>
+          <div class="text-xs font-mono uppercase tracking-widest text-gray-400">Epochs</div>
+        </div>
+        <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-100">
+          <div class="text-xl font-mono font-bold text-coral mb-1">10K+</div>
+          <div class="text-xs font-mono uppercase tracking-widest text-gray-400">GPUs</div>
+        </div>
+      </div>
+    </section>
+
+    <NextSteps
+      accentColor="var(--color-coral)"
+      items={[
+        { label: 'Supervised Fine-Tuning', href: '/sft', description: 'Teaching the model to follow instructions' },
+      ]}
+    />
+  </MainContent>
+</Layout>

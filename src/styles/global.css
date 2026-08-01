@@ -1,0 +1,133 @@
+/* Import Tailwind */
+@import "tailwindcss";
+
+/* Import design tokens */
+@import "./tokens.css";
+
+/* Expose design tokens to Tailwind utility system */
+@theme {
+  --color-warm-white: var(--color-warm-white);
+  --color-near-black: var(--color-near-black);
+  --color-blue-violet: var(--color-blue-violet);
+  --color-coral: var(--color-coral);
+  --color-teal: var(--color-teal);
+  --color-gray-50: var(--color-gray-50);
+  --color-gray-100: var(--color-gray-100);
+  --color-gray-200: var(--color-gray-200);
+  --color-gray-300: var(--color-gray-300);
+  --color-gray-400: var(--color-gray-400);
+  --color-gray-500: var(--color-gray-500);
+  --color-gray-600: var(--color-gray-600);
+  --color-gray-700: var(--color-gray-700);
+  --color-gray-800: var(--color-gray-800);
+  --color-gray-900: var(--color-gray-900);
+
+  --font-body: var(--font-body);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+
+  --text-2xl: var(--text-2xl);
+  --text-xl: var(--text-xl);
+  --text-lg: var(--text-lg);
+  --text-base: var(--text-base);
+  --text-sm: var(--text-sm);
+  --text-xs: var(--text-xs);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  --shadow-subtle: var(--shadow-subtle);
+  --shadow-medium: var(--shadow-medium);
+  --shadow-large: var(--shadow-large);
+}
+
+/* ── Base Reset ───────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-body);
+  color: var(--color-near-black);
+  background-color: var(--color-warm-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Heading font family override */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+/* Code font family */
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+/* ── Skip Link ────────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  transform: translateY(-100%);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: var(--color-blue-violet);
+  color: white;
+  border-radius: 0 0 var(--radius-sm) 0;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 2px solid var(--color-blue-violet);
+  outline-offset: 2px;
+}
+
+/* ── Focus Styles ─────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--color-blue-violet);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove default focus outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Reduced Motion ───────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

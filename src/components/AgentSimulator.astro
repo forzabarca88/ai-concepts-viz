@@ -1,0 +1,738 @@
+---
+// AgentSimulator — Chat-like interface for simulated agent interaction.
+// User selects a demo scenario → agent responds step-by-step with thinking, tool calls, and final response.
+// Each step fades in with animation. Uses teal accent color.
+// Uses data-* attributes for DOM scoping. Regular <script> tag bundled by Vite (Astro 5).
+
+import { SCENARIOS } from '../lib/scenarios';
+
+interface Props {
+  containerClass?: string;
+}
+
+const { containerClass = '' } = Astro.props;
+
+// Serialize data for embedding in data attribute
+const scenariosJson = JSON.stringify(SCENARIOS);
+---
+
+<div
+  data-agent-simulator-root
+  class={`rounded-lg border border-gray-200 bg-white shadow-subtle overflow-hidden flex flex-col ${containerClass}`}
+  data-scenarios={scenariosJson}
+>
+  <!-- Header -->
+  <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+    <h3 class="text-sm font-heading font-medium text-near-black tracking-tight mb-1">
+      Agent Simulator
+    </h3>
+    <p class="text-xs text-gray-500">
+      Pick a scenario below and watch the agent think, use tools, and respond — step by step.
+    </p>
+  </div>
+
+  <!-- Scenario selector -->
+  <div class="px-5 py-3 border-b border-gray-100">
+    <label class="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
+      Choose a demo
+    </label>
+    <div data-scenario-selector role="group" aria-label="Agent demo scenarios" class="flex flex-wrap gap-2" />
+  </div>
+
+  <!-- Chat area -->
+  <div data-chat-area class="flex-1 overflow-y-auto min-h-[320px] max-h-[480px] px-5 py-4" role="log" aria-label="Agent simulation chat">
+    <!-- Welcome state (shown before any scenario is selected) -->
+    <div data-welcome-state class="flex flex-col items-center justify-center h-full text-center py-12">
+      <div class="text-4xl mb-4" aria-hidden="true">🤖</div>
+      <h4 class="text-sm font-heading font-medium text-near-black tracking-tight mb-2">
+        Ready to watch an agent think
+      </h4>
+      <p class="text-xs text-gray-500 leading-relaxed max-w-xs">
+        Select a scenario above to start the simulation. You'll see the agent's thinking process,
+        tool calls, and final response unfold in real time.
+      </p>
+    </div>
+
+    <!-- Chat messages container (populated by JS) -->
+    <div data-chat-messages class="space-y-4 hidden" aria-live="polite" />
+  </div>
+
+  <!-- Controls bar -->
+  <div data-controls-bar class="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between hidden">
+    <!-- Playback controls -->
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        data-sim-pause
+        aria-label="Pause simulation"
+        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-teal hover:text-teal transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        </svg>
+        Pause
+      </button>
+      <button
+        type="button"
+        data-sim-restart
+        aria-label="Restart simulation"
+        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-teal hover:text-teal transition-colors duration-150"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M3 21v-5h5" />
+        </svg>
+        Restart
+      </button>
+    </div>
+
+    <!-- Progress -->
+    <span data-step-progress class="text-xs font-mono text-gray-400" aria-live="polite">
+      0 / 0
+    </span>
+  </div>
+
+  <!-- Legend -->
+  <div data-legend class="px-5 py-2.5 border-t border-gray-100 bg-gray-50 hidden">
+    <div class="flex items-center gap-4 text-xs text-gray-500">
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full bg-teal inline-block" />
+        Thinking
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-teal/20 border border-teal/40 inline-block" />
+        Tool Call
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-gray-800 inline-block" />
+        Tool Result
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full border-2 border-teal bg-teal/10 inline-block" />
+        Response
+      </span>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Fade-in animation for chat messages */
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .agent-step-enter {
+    animation: fadeSlideIn 0.4s ease-out forwards;
+  }
+
+  /* Scenario selector button */
+  .scenario-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid #E5E5E5;
+    background: white;
+    color: #737373;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .scenario-btn:hover {
+    border-color: #00C4B0;
+    color: #00C4B0;
+  }
+
+  .scenario-btn.active {
+    border-color: #00C4B0;
+    color: #00C4B0;
+    background-color: #00C4B010;
+  }
+
+  .scenario-btn .scenario-icon {
+    font-size: 14px;
+  }
+
+  /* Chat message types */
+  .msg-user {
+    background: #00C4B012;
+    border: 1px solid #00C4B033;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #1D1D1F;
+    max-width: 85%;
+    align-self: flex-end;
+  }
+
+  .msg-user .sender-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #00C4B0;
+    margin-bottom: 4px;
+  }
+
+  .msg-thinking {
+    background: #FAFAF8;
+    border: 1px solid #E5E5E5;
+    border-left: 3px solid #00C4B0;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #737373;
+    font-family: var(--font-mono);
+    max-width: 90%;
+  }
+
+  .msg-thinking .step-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #00C4B0;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .msg-tool-call {
+    background: #00C4B008;
+    border: 1px solid #00C4B025;
+    border-radius: 8px;
+    padding: 10px 14px;
+    max-width: 90%;
+  }
+
+  .msg-tool-call .step-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #00C4B0;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .msg-tool-call .tool-desc {
+    font-size: 12px;
+    color: #525252;
+    margin-bottom: 6px;
+  }
+
+  .msg-tool-call code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: #1D1D1F;
+    color: #FAFAF8;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: block;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .msg-tool-result {
+    background: #1D1D1F;
+    border: 1px solid #262626;
+    border-radius: 8px;
+    padding: 10px 14px;
+    max-width: 90%;
+  }
+
+  .msg-tool-result .step-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #A3A3A3;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .msg-tool-result code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #FAFAF8;
+    display: block;
+    overflow-x: auto;
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .msg-response {
+    background: #00C4B010;
+    border: 1px solid #00C4B030;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1D1D1F;
+    max-width: 90%;
+  }
+
+  .msg-response .step-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #00C4B0;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .msg-response .sender-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #00C4B0;
+    margin-bottom: 4px;
+  }
+
+  /* Chat messages container layout */
+  .chat-messages-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Scrollbar for chat area */
+  [data-chat-area]::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  [data-chat-area]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  [data-chat-area]::-webkit-scrollbar-thumb {
+    background: #D4D4D4;
+    border-radius: 9999px;
+  }
+
+  /* Code syntax highlighting */
+  .code-highlight .key {
+    color: #00C4B0;
+  }
+
+  .code-highlight .string {
+    color: #FF6B50;
+  }
+
+  .code-highlight .bracket {
+    color: #A3A3A3;
+  }
+
+  .code-highlight .number {
+    color: #FF6B50;
+  }
+</style>
+
+<script>
+  import { SCENARIOS } from '../lib/scenarios';
+
+  type AgentStep = {
+    type: 'thinking' | 'tool_call' | 'tool_result' | 'response';
+    content: string;
+    toolName?: string;
+    toolArgs?: Record<string, string | number>;
+    toolOutput?: string;
+    label?: string;
+    delay?: number;
+  };
+
+  type AgentScenario = {
+    id: string;
+    title: string;
+    description: string;
+    userPrompt: string;
+    icon: string;
+    steps: AgentStep[];
+  };
+
+  interface SimState {
+    scenarios: AgentScenario[];
+    selectedScenarioId: string | null;
+    currentStepIndex: number;
+    isPlaying: boolean;
+    isPaused: boolean;
+    timers: number[];
+  }
+
+  interface SimInstance {
+    state: SimState;
+    root: HTMLElement;
+    scenarioSelector: HTMLElement;
+    welcomeState: HTMLElement;
+    chatMessages: HTMLElement;
+    chatArea: HTMLElement;
+    controlsBar: HTMLElement;
+    pauseBtn: HTMLButtonElement | null;
+    restartBtn: HTMLButtonElement | null;
+    stepProgress: HTMLElement | null;
+    legend: HTMLElement;
+  }
+
+  // ── Step rendering ───────────────────────────────────────────────
+
+  function renderStepMessage(step: AgentStep): string {
+    switch (step.type) {
+      case 'thinking':
+        return `
+<div class="msg-thinking">
+  <div class="step-label">${step.label || 'Thinking...'}</div>
+  <div>${escapeHtml(step.content)}</div>
+</div>`;
+
+      case 'tool_call': {
+        const argsJson = step.toolArgs ? JSON.stringify(step.toolArgs, null, 2) : '{}';
+        const highlighted = argsJson
+          .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+          .replace(/: "([^"]*)"/g, ': <span class="string">"$1"</span>')
+          .replace(/: (\d+)/g, ': <span class="number">$1</span>')
+          .replace(/[{}]/g, '<span class="bracket">$&</span>');
+        return `
+<div class="msg-tool-call">
+  <div class="step-label">${step.label || '🔧 Tool Call'}</div>
+  ${step.content ? `<div class="tool-desc">${escapeHtml(step.content)}</div>` : ''}
+  <div class="code-highlight"><code>${highlighted}</code></div>
+</div>`;
+      }
+
+      case 'tool_result':
+        return `
+<div class="msg-tool-result">
+  <div class="step-label">${step.label || '📦 Tool Result'}</div>
+  <code>${escapeHtml(step.toolOutput || step.content)}</code>
+</div>`;
+
+      case 'response':
+        return `
+<div class="msg-response">
+  <div class="sender-label">Agent</div>
+  <div class="step-label">${step.label || '✨ Final Response'}</div>
+  <div class="response-body">${formatResponse(step.content)}</div>
+</div>`;
+
+      default:
+        return '';
+    }
+  }
+
+  function renderUserMessage(prompt: string): string {
+    return `
+<div class="msg-user">
+  <div class="sender-label">You</div>
+  <div>${escapeHtml(prompt)}</div>
+</div>`;
+  }
+
+  // ── Text formatting helpers ──────────────────────────────────────
+
+  function escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function formatResponse(text: string): string {
+    // Convert markdown-like formatting to HTML
+    let html = escapeHtml(text);
+
+    // Bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Inline code: \`code\`
+    html = html.replace(/`([^`]+)`/g, '<code class="text-xs font-mono bg-gray-100 px-1 py-0.5 rounded">$1</code>');
+
+    // Line breaks
+    html = html.replace(/\n/g, '<br>');
+
+    return html;
+  }
+
+  // ── Simulation runner ────────────────────────────────────────────
+
+  function clearTimers(instance: SimInstance): void {
+    instance.state.timers.forEach(t => clearTimeout(t));
+    instance.state.timers = [];
+  }
+
+  function runSimulation(instance: SimInstance): void {
+    clearTimers(instance);
+    instance.state.isPlaying = true;
+    instance.state.isPaused = false;
+    instance.state.currentStepIndex = 0;
+
+    const scenario = instance.state.scenarios.find(s => s.id === instance.state.selectedScenarioId);
+    if (!scenario) return;
+
+    // Show chat area, hide welcome
+    instance.welcomeState.classList.add('hidden');
+    instance.chatMessages.classList.remove('hidden');
+    instance.controlsBar.classList.remove('hidden');
+    instance.legend.classList.remove('hidden');
+
+    // Clear previous messages
+    instance.chatMessages.innerHTML = '';
+    instance.chatMessages.classList.add('chat-messages-col');
+
+    // Update pause button
+    if (instance.pauseBtn) {
+      instance.pauseBtn.disabled = false;
+      instance.pauseBtn.innerHTML = `
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="4" width="4" height="16" rx="1" />
+          <rect x="14" y="4" width="4" height="16" rx="1" />
+        </svg>
+        Pause`;
+    }
+
+    // Show user message first
+    const userMsg = document.createElement('div');
+    userMsg.className = 'agent-step-enter';
+    userMsg.innerHTML = renderUserMessage(scenario.userPrompt);
+    instance.chatMessages.appendChild(userMsg);
+
+    // Schedule each step with its delay
+    let cumulativeDelay = 400; // initial delay after user message
+    const steps = scenario.steps;
+
+    // Update progress
+    if (instance.stepProgress) {
+      instance.stepProgress.textContent = `0 / ${steps.length}`;
+    }
+
+    steps.forEach((step, index) => {
+      cumulativeDelay += step.delay || 800;
+      const timer = window.setTimeout(() => {
+        if (instance.state.isPaused) return;
+
+        const msgEl = document.createElement('div');
+        msgEl.className = 'agent-step-enter';
+        msgEl.innerHTML = renderStepMessage(step);
+        instance.chatMessages.appendChild(msgEl);
+
+        // Scroll to bottom
+        instance.chatArea.scrollTop = instance.chatArea.scrollHeight;
+
+        // Update progress
+        if (instance.stepProgress) {
+          instance.stepProgress.textContent = `${index + 1} / ${steps.length}`;
+        }
+
+        // Check if simulation is complete
+        if (index === steps.length - 1) {
+          instance.state.isPlaying = false;
+          if (instance.pauseBtn) {
+            instance.pauseBtn.disabled = true;
+          }
+        }
+      }, cumulativeDelay);
+      instance.state.timers.push(timer);
+    });
+  }
+
+  // ── Build scenario buttons ───────────────────────────────────────
+
+  function buildScenarioButtons(instance: SimInstance): void {
+    if (!instance.scenarioSelector) return;
+    instance.scenarioSelector.innerHTML = '';
+
+    instance.state.scenarios.forEach(scenario => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scenario-btn';
+      btn.setAttribute('data-scenario-id', scenario.id);
+      btn.setAttribute('aria-label', `${scenario.title}: ${scenario.description}`);
+
+      if (instance.state.selectedScenarioId === scenario.id) {
+        btn.classList.add('active');
+      }
+
+      btn.innerHTML = `<span class="scenario-icon" aria-hidden="true">${scenario.icon}</span><span>${scenario.title}</span>`;
+
+      btn.addEventListener('click', () => {
+        // Update active state on buttons
+        instance.scenarioSelector.querySelectorAll('.scenario-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-scenario-id') === scenario.id);
+        });
+
+        // Start simulation
+        instance.state.selectedScenarioId = scenario.id;
+        instance.state.currentStepIndex = 0;
+        runSimulation(instance);
+      });
+
+      instance.scenarioSelector.appendChild(btn);
+    });
+  }
+
+  // ── Initialization ───────────────────────────────────────────────
+
+  function initSimulator(root: HTMLElement): void {
+    const scenarios = JSON.parse(root.dataset.scenarios || '[]');
+
+    const instance: SimInstance = {
+      state: {
+        scenarios,
+        selectedScenarioId: null,
+        currentStepIndex: 0,
+        isPlaying: false,
+        isPaused: false,
+        timers: [],
+      },
+      root,
+      scenarioSelector: root.querySelector('[data-scenario-selector]') as HTMLElement,
+      welcomeState: root.querySelector('[data-welcome-state]') as HTMLElement,
+      chatMessages: root.querySelector('[data-chat-messages]') as HTMLElement,
+      chatArea: root.querySelector('[data-chat-area]') as HTMLElement,
+      controlsBar: root.querySelector('[data-controls-bar]') as HTMLElement,
+      pauseBtn: root.querySelector('[data-sim-pause]') as HTMLButtonElement | null,
+      restartBtn: root.querySelector('[data-sim-restart]') as HTMLButtonElement,
+      stepProgress: root.querySelector('[data-step-progress]') as HTMLElement | null,
+      legend: root.querySelector('[data-legend]') as HTMLElement,
+    };
+
+    // Build scenario selector buttons
+    buildScenarioButtons(instance);
+
+    // Pause button
+    if (instance.pauseBtn) {
+      instance.pauseBtn.addEventListener('click', () => {
+        if (!instance.state.isPlaying) return;
+
+        if (!instance.state.isPaused) {
+          // Pause
+          instance.state.isPaused = true;
+          clearTimers(instance);
+          instance.pauseBtn.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Play`;
+        } else {
+          // Resume — re-run from current step
+          instance.state.isPaused = false;
+          instance.pauseBtn.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+            Pause`;
+
+          // Re-run simulation from where we left off
+          const scenario = instance.state.scenarios.find(s => s.id === instance.state.selectedScenarioId);
+          if (!scenario) return;
+
+          // Clear chat and restart from current step index
+          instance.chatMessages.innerHTML = '';
+          instance.chatMessages.classList.add('chat-messages-col');
+
+          // Show user message
+          const userMsg = document.createElement('div');
+          userMsg.className = 'agent-step-enter';
+          userMsg.innerHTML = renderUserMessage(scenario.userPrompt);
+          instance.chatMessages.appendChild(userMsg);
+
+          // Replay steps up to current index instantly
+          let cumulativeDelay = 0;
+          const steps = scenario.steps;
+          for (let i = 0; i < instance.state.currentStepIndex; i++) {
+            const msgEl = document.createElement('div');
+            msgEl.style.opacity = '1';
+            msgEl.innerHTML = renderStepMessage(steps[i]);
+            instance.chatMessages.appendChild(msgEl);
+          }
+
+          // Schedule remaining steps
+          cumulativeDelay = 400;
+          for (let i = instance.state.currentStepIndex; i < steps.length; i++) {
+            cumulativeDelay += steps[i].delay || 800;
+            const timer = window.setTimeout(() => {
+              const msgEl = document.createElement('div');
+              msgEl.className = 'agent-step-enter';
+              msgEl.innerHTML = renderStepMessage(steps[i]);
+              instance.chatMessages.appendChild(msgEl);
+              instance.chatArea.scrollTop = instance.chatArea.scrollHeight;
+
+              if (instance.stepProgress) {
+                instance.stepProgress.textContent = `${i + 1} / ${steps.length}`;
+              }
+
+              if (i === steps.length - 1) {
+                instance.state.isPlaying = false;
+                if (instance.pauseBtn) {
+                  instance.pauseBtn.disabled = true;
+                }
+              }
+            }, cumulativeDelay);
+            instance.state.timers.push(timer);
+          }
+        }
+      });
+    }
+
+    // Restart button
+    if (instance.restartBtn) {
+      instance.restartBtn.addEventListener('click', () => {
+        clearTimers(instance);
+        instance.state.currentStepIndex = 0;
+        instance.state.isPaused = false;
+        if (instance.state.selectedScenarioId) {
+          runSimulation(instance);
+        } else {
+          // Reset to welcome state
+          instance.chatMessages.innerHTML = '';
+          instance.chatMessages.classList.add('hidden');
+          instance.welcomeState.classList.remove('hidden');
+          instance.controlsBar.classList.add('hidden');
+          instance.legend.classList.add('hidden');
+          if (instance.pauseBtn) {
+            instance.pauseBtn.disabled = true;
+          }
+          if (instance.stepProgress) {
+            instance.stepProgress.textContent = '0 / 0';
+          }
+        }
+      });
+    }
+  }
+
+  // Initialize all instances on the page
+  function init() {
+    document.querySelectorAll('[data-agent-simulator-root]').forEach(root => {
+      initSimulator(root as HTMLElement);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(init);
+    });
+  } else {
+    requestAnimationFrame(init);
+  }
+</script>
