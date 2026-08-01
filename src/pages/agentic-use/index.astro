@@ -1,0 +1,98 @@
+---
+import Layout from '../../components/Layout.astro';
+import SidebarNav from '../../components/SidebarNav.astro';
+import BottomNav from '../../components/BottomNav.astro';
+import MainContent from '../../components/MainContent.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ConceptCard from '../../components/ConceptCard.astro';
+import NextSteps from '../../components/NextSteps.astro';
+---
+
+<Layout title="Agentic Use — AI Concepts Visualized" description="AI agents as capable assistants: tool calling, skills, MCP servers, and autonomous agent demos.">
+  <SidebarNav activeSlug="agentic-use" />
+  <BottomNav activeTab="agentic" />
+  <MainContent>
+    <Breadcrumbs items={[
+      { label: 'Home', href: '/' },
+      { label: 'Agentic Use' },
+    ]} />
+
+    <!-- Hero -->
+    <header class="mb-12">
+      <span class="inline-flex items-center gap-2 mb-4">
+        <span class="w-2 h-2 rounded-full bg-teal" />
+        <span class="text-xs font-mono uppercase tracking-widest text-gray-400">Section 3</span>
+      </span>
+      <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+        Foundations for Agentic Use
+      </h1>
+      <p class="text-base text-gray-500 leading-relaxed max-w-prose">
+        A trained model can answer questions — but an agentic system goes further. By equipping
+        models with tools, structured skills, and external knowledge sources, AI agents become
+        capable assistants that can act on your behalf: searching the web, running code, calling
+        APIs, and orchestrating complex workflows autonomously.
+      </p>
+    </header>
+
+    <!-- Concept cards -->
+    <div data-section="agentic-cards" class="space-y-4">
+      <ConceptCard
+        title="Tool Calling"
+        description="How models learn to invoke external tools — from function definitions to structured JSON arguments and real-world execution."
+        href="/tool-calling"
+        accentColor="teal"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l3.5-3.5a1 1 0 0 0 0-1.4l-1.3-1.3a1 1 0 0 0-1.4 0l-3.5 3.5Z" />
+          <path d="M10.6 10.6a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l3.5-3.5a1 1 0 0 0 0-1.4l-1.3-1.3a1 1 0 0 0-1.4 0l-3.5 3.5Z" />
+          <path d="M6.5 6.5a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l3.5-3.5a1 1 0 0 0 0-1.4l-1.3-1.3a1 1 0 0 0-1.4 0l-3.5 3.5Z" />
+          <path d="M4.5 14.5l-1.5 1.5a1 1 0 0 0 0 1.4l1.3 1.3a1 1 0 0 0 1.4 0l1.5-1.5" />
+          <path d="M12.5 14.5l-1.5 1.5a1 1 0 0 0 0 1.4l1.3 1.3a1 1 0 0 0 1.4 0l1.5-1.5" />
+        </svg>
+      </ConceptCard>
+
+      <ConceptCard
+        title="Skills"
+        description="Reusable knowledge packages that teach agents domain-specific expertise — from coding patterns to data analysis workflows."
+        href="/skills"
+        accentColor="teal"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16v16H4z" />
+          <path d="M4 9h16" />
+          <path d="M9 4v16" />
+        </svg>
+      </ConceptCard>
+
+      <ConceptCard
+        title="MCP Servers"
+        description="The Model Context Protocol — a standardized way for agents to connect to data sources, tools, and other services."
+        href="/mcp-servers"
+        accentColor="teal"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+        </svg>
+      </ConceptCard>
+
+      <ConceptCard
+        title="Agent Demo"
+        description="See it all in action — an interactive demo of an autonomous agent solving real tasks using tools, skills, and MCP together."
+        href="/agent-demo"
+        accentColor="teal"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2Z" />
+        </svg>
+      </ConceptCard>
+    </div>
+
+    <NextSteps
+      accentColor="var(--color-teal)"
+      items={[
+        { label: 'Core Concepts', href: '/core-concepts', description: 'Start from the beginning — data, tokens, and parameters' },
+      ]}
+    />
+  </MainContent>
+</Layout>

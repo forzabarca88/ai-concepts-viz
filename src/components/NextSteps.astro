@@ -1,0 +1,62 @@
+---
+interface Props {
+  items: { label: string; href: string; description?: string }[];
+  accentColor?: string;
+}
+
+const { items, accentColor = 'var(--color-gray-400)' } = Astro.props;
+---
+
+<section class="mb-8" aria-label="Next steps">
+  <h2 class="text-sm font-mono uppercase tracking-widest text-gray-400 mb-4">
+    What's Next
+  </h2>
+  <div class="space-y-3">
+    {items.map((item) => (
+      <a
+        href={item.href}
+        class="next-step-card block rounded-lg border border-gray-200 bg-white p-5 shadow-subtle hover:shadow-medium hover:border-gray-300 transition-all duration-200"
+      >
+        <div class="flex items-start gap-3">
+          <span
+            class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+            style={`background-color: ${accentColor};`}
+          />
+          <div class="min-w-0">
+            <span class="next-step-label text-sm font-medium text-near-black">
+              {item.label}
+            </span>
+            {item.description && (
+              <p class="next-step-desc text-xs text-gray-500 mt-0.5 leading-relaxed">
+                {item.description}
+              </p>
+            )}
+          </div>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="next-step-arrow flex-shrink-0 ml-auto text-gray-300"
+          >
+            <path d="M6 4l4 4-4 4" />
+          </svg>
+        </div>
+      </a>
+    ))}
+  </div>
+</section>
+
+<style>
+  .next-step-card:hover .next-step-label {
+    color: var(--color-blue-violet);
+  }
+  .next-step-card:hover .next-step-arrow {
+    color: var(--color-blue-violet);
+    transform: translateX(2px);
+  }
+</style>

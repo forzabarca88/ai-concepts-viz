@@ -1,0 +1,61 @@
+---
+interface Props {
+  activeTab?: string;
+}
+
+const { activeTab = 'core' } = Astro.props;
+
+function tabClass(isActive: boolean): string {
+  return isActive
+    ? 'flex flex-col items-center gap-0.5 px-4 py-1.5 min-w-0 transition-colors duration-200 text-near-black'
+    : 'flex flex-col items-center gap-0.5 px-4 py-1.5 min-w-0 transition-colors duration-200 text-gray-400';
+}
+
+function labelClass(isActive: boolean): string {
+  return isActive ? 'text-xs font-semibold' : 'text-xs font-medium';
+}
+---
+
+<!-- Bottom nav — visible on mobile, hidden above 768px -->
+<nav class="bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-30 bg-warm-white/95 backdrop-blur-sm border-t border-gray-200">
+  <div class="flex items-center justify-around max-w-lg mx-auto h-14">
+
+    <!-- Core Concepts tab -->
+    <a href="/" class={tabClass(activeTab === 'core')}>
+      {activeTab === 'core' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
+      <span class="w-5 h-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a7 7 0 0 0-7 7c0 2.38.96 4.53 2.5 6.07L12 22l4.5-6.93A7 7 0 0 0 12 2Z" />
+          <path d="M9 9h6" />
+          <path d="M12 9v6" />
+        </svg>
+      </span>
+      <span class={labelClass(activeTab === 'core')}>Core Concepts</span>
+    </a>
+
+    <!-- Training tab -->
+    <a href="/pre-training" class={tabClass(activeTab === 'training')}>
+      {activeTab === 'training' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
+      <span class="w-5 h-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l10 6-10 6-10-6 10-6Z" />
+          <path d="M2 8l10 6 10-6" />
+          <path d="M2 14l10 6 10-6" />
+        </svg>
+      </span>
+      <span class={labelClass(activeTab === 'training')}>Training</span>
+    </a>
+
+    <!-- Agentic tab -->
+    <a href="/agentic-use" class={tabClass(activeTab === 'agentic')}>
+      {activeTab === 'agentic' && <span class="w-1 h-1 rounded-full bg-near-black mb-0.5" />}
+      <span class="w-5 h-5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5L12 2Z" />
+        </svg>
+      </span>
+      <span class={labelClass(activeTab === 'agentic')}>Agentic</span>
+    </a>
+
+  </div>
+</nav>

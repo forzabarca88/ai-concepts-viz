@@ -1,0 +1,82 @@
+---
+import Layout from '../../components/Layout.astro';
+import SidebarNav from '../../components/SidebarNav.astro';
+import BottomNav from '../../components/BottomNav.astro';
+import MainContent from '../../components/MainContent.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ConceptCard from '../../components/ConceptCard.astro';
+import NextSteps from '../../components/NextSteps.astro';
+---
+
+<Layout title="Core Concepts — AI Concepts Visualized" description="The foundational building blocks of large language models: data, tokenization, and parameters.">
+  <SidebarNav activeSlug="core-concepts" />
+  <BottomNav activeTab="core" />
+  <MainContent>
+    <Breadcrumbs items={[
+      { label: 'Home', href: '/' },
+      { label: 'Core Concepts' },
+    ]} />
+
+    <!-- Hero -->
+    <header class="mb-12">
+      <span class="inline-flex items-center gap-2 mb-4">
+        <span class="w-2 h-2 rounded-full bg-blue-violet" />
+        <span class="text-xs font-mono uppercase tracking-widest text-gray-400">Section 1</span>
+      </span>
+      <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+        Core Concepts
+      </h1>
+      <p class="text-base text-gray-500 leading-relaxed max-w-prose">
+        Every large language model rests on three foundations: the data it learns from,
+        the way it breaks text into tokens, and the parameters that encode its knowledge.
+        Explore each one to understand what makes modern AI tick.
+      </p>
+    </header>
+
+    <!-- Concept cards -->
+    <div class="space-y-4">
+      <ConceptCard
+        title="Data"
+        description="The raw text, code, and knowledge that models are trained on — from web crawls to curated corpora."
+        href="/data"
+        accentColor="blue-violet"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16v16H4z" />
+          <path d="M4 9h16" />
+          <path d="M9 4v16" />
+        </svg>
+      </ConceptCard>
+
+      <ConceptCard
+        title="Tokenization"
+        description="How models convert raw text into numeric sequences — the bridge between human language and machine computation."
+        href="/tokenization"
+        accentColor="coral"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h10M4 18h13" />
+        </svg>
+      </ConceptCard>
+
+      <ConceptCard
+        title="Parameters"
+        description="The billions of weights and biases that encode a model's knowledge — the scale that drives capability."
+        href="/parameters"
+        accentColor="teal"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+        </svg>
+      </ConceptCard>
+    </div>
+
+    <NextSteps
+      accentColor="var(--color-blue-violet)"
+      items={[
+        { label: 'Training Stages', href: '/training-stages', description: 'From base model to helpful assistant' },
+      ]}
+    />
+  </MainContent>
+</Layout>

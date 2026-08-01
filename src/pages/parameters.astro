@@ -1,0 +1,18 @@
+---
+import Layout from '../components/Layout.astro';
+import SidebarNav from '../components/SidebarNav.astro';
+import BottomNav from '../components/BottomNav.astro';
+import MainContent from '../components/MainContent.astro';
+import ParametersContent from '../components/ParametersContent.astro';
+---
+
+<Layout
+  title="Parameters — AI Concepts Visualized"
+  description="The billions of weights and biases that encode a model's knowledge — the scale that drives capability."
+>
+  <SidebarNav activeSlug="parameters" />
+  <BottomNav activeTab="core" />
+  <MainContent>
+    <ParametersContent />
+  </MainContent>
+</Layout>

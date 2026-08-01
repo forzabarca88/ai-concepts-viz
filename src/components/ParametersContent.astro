@@ -1,0 +1,378 @@
+---
+import Breadcrumbs from './Breadcrumbs.astro';
+import ModelAnatomy from './ModelAnatomy.astro';
+import NextSteps from './NextSteps.astro';
+---
+
+<!-- Breadcrumbs -->
+<Breadcrumbs items={[
+  { label: 'Home', href: '/' },
+  { label: 'Core Concepts', href: '/core-concepts' },
+  { label: 'Parameters' },
+]} />
+
+<!-- Hero -->
+<header class="mb-12">
+  <span class="inline-flex items-center gap-2 mb-4">
+    <span class="w-2 h-2 rounded-full bg-blue-violet" />
+    <span class="text-xs font-mono uppercase tracking-widest text-blue-violet">Core Concepts</span>
+  </span>
+  <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+    Parameters
+  </h1>
+  <p class="text-base text-gray-500 leading-relaxed max-w-prose">
+    Parameters are the model's memories — the billions of numbers that encode everything
+    it has learned. Adjust the slider below to see how model size shapes what's possible.
+  </p>
+</header>
+
+<!-- Section: What are parameters? -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-4">
+    What are parameters?
+  </h2>
+  <div class="prose-body text-sm text-gray-600 leading-relaxed max-w-prose space-y-4">
+    <p>
+      A parameter is a single number inside the model — a weight or a bias — that gets
+      adjusted during training. Together, these numbers form the model's entire "knowledge."
+      When you ask a model a question, it's these parameters doing all the work: transforming
+      your input tokens through layers of mathematical operations to produce a response.
+    </p>
+    <p>
+      Think of parameters like the synaptic connections in a brain. Each connection has a
+      strength — a number that determines how strongly one neuron influences another. A human
+      brain has roughly 100 trillion synapses. A modern large language model might have
+      70 billion parameters. The model's intelligence emerges from the pattern of all these
+      numbers working together.
+    </p>
+    <p>
+      There are two types of parameters in a neural network layer:
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <h3 class="text-sm font-heading font-medium text-near-black mb-2">
+        Weights
+      </h3>
+      <p class="text-xs text-gray-500 leading-relaxed mb-3">
+        The main parameters. Each neuron has a weight for every input it receives.
+        In a layer with 4096 inputs and 4096 outputs, that's 16.7 million weights.
+      </p>
+      <div class="p-3 rounded-md bg-gray-50 font-mono text-xs text-blue-violet">
+        weights = inputs × outputs
+      </div>
+    </div>
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <h3 class="text-sm font-heading font-medium text-near-black mb-2">
+        Biases
+      </h3>
+      <p class="text-xs text-gray-500 leading-relaxed mb-3">
+        An offset added to each neuron's output. One bias per output neuron — much
+        fewer than weights, but essential for shifting the activation threshold.
+      </p>
+      <div class="p-3 rounded-md bg-gray-50 font-mono text-blue-violet">
+        biases = outputs
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Interactive visualization -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-2">
+    Model anatomy
+  </h2>
+  <p class="text-sm text-gray-500 leading-relaxed max-w-prose mb-6">
+    Explore how parameters are distributed across a model's layers. Click any layer to
+    see its parameter breakdown. Use the slider to scale from a tiny model to a large one
+    and watch the parameter counts explode.
+  </p>
+  <ModelAnatomy containerClass="mb-6" />
+</section>
+
+<!-- Section: How parameters get their values -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-4">
+    How parameters get their values: learning from mistakes
+  </h2>
+  <div class="prose-body text-sm text-gray-600 leading-relaxed max-w-prose space-y-4">
+    <p>
+      When a model is first created, every parameter is set to a small random number.
+      The model knows nothing — it's like a brain before any learning has happened.
+      Training is the process of adjusting all these numbers until the model produces
+      good outputs.
+    </p>
+    <p>
+      The adjustment happens through <strong>gradient descent</strong> — an algorithm
+      that's essentially "learning from mistakes." Here's how it works:
+    </p>
+  </div>
+
+  <div class="space-y-4 mt-6">
+    <!-- Step 1 -->
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-violet text-white text-xs font-bold">
+          1
+        </span>
+        <h3 class="text-sm font-heading font-medium text-near-black">
+          Make a prediction
+        </h3>
+      </div>
+      <p class="text-sm text-gray-500 leading-relaxed">
+        Feed input through the network. Each layer transforms the data using its current
+        parameters. The final layer produces a prediction — like guessing the next word
+        in a sentence.
+      </p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-violet text-white text-xs font-bold">
+          2
+        </span>
+        <h3 class="text-sm font-heading font-medium text-near-black">
+          Measure the mistake
+        </h3>
+      </div>
+      <p class="text-sm text-gray-500 leading-relaxed">
+        Compare the prediction to the correct answer. The <strong>loss function</strong>
+        quantifies how wrong the model was — a single number. Higher loss means a bigger
+        mistake. This is the model's feedback signal.
+      </p>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-violet text-white text-xs font-bold">
+          3
+        </span>
+        <h3 class="text-sm font-heading font-medium text-near-black">
+          Calculate the gradient
+        </h3>
+      </div>
+      <p class="text-sm text-gray-500 leading-relaxed">
+        For every single parameter, compute how much it contributed to the error.
+        This is called the <strong>gradient</strong> — it tells you which direction to
+        adjust each parameter to reduce the loss. Backpropagation is the algorithm that
+        efficiently computes these gradients through the entire network.
+      </p>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-subtle">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-violet text-white text-xs font-bold">
+          4
+        </span>
+        <h3 class="text-sm font-heading font-medium text-near-black">
+          Update the parameters
+        </h3>
+      </div>
+      <p class="text-sm text-gray-500 leading-relaxed">
+        Nudge each parameter in the direction that reduces error. The <strong>learning
+        rate</strong> controls how big each nudge is — too small and learning is slow;
+        too large and the model overshoots and diverges. Then repeat from step 1,
+        millions of times, over thousands of training examples.
+      </p>
+    </div>
+  </div>
+
+  <div class="prose-body text-sm text-gray-600 leading-relaxed max-w-prose mt-6 space-y-4">
+    <p>
+      After training on hundreds of billions of tokens, each parameter has settled into
+      a value that represents something the model learned: a grammar rule, a fact, a
+      reasoning pattern, or a piece of world knowledge. The model's capability is
+      entirely determined by these parameter values.
+    </p>
+  </div>
+</section>
+
+<!-- Section: The scaling story -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-4">
+    The scaling story: more parameters, more capability
+  </h2>
+  <div class="prose-body text-sm text-gray-600 leading-relaxed max-w-prose space-y-4 mb-6">
+    <p>
+      The most consistent finding in modern AI research: bigger models are smarter.
+      More parameters mean the model can store more knowledge, learn more complex
+      patterns, and handle more nuanced tasks. But the relationship isn't linear —
+      capability tends to grow as a power law with model size.
+    </p>
+  </div>
+
+  <div class="overflow-x-auto mb-6">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200">
+          <th class="text-left py-2 px-3 font-mono text-xs text-gray-400 uppercase tracking-wider">Model</th>
+          <th class="text-right py-2 px-3 font-mono text-xs text-gray-400 uppercase tracking-wider">Parameters</th>
+          <th class="text-right py-2 px-3 font-mono text-xs text-gray-400 uppercase tracking-wider">Disk (FP16)</th>
+          <th class="text-left py-2 px-3 font-mono text-xs text-gray-400 uppercase tracking-wider">Era</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr class="bg-white">
+          <td class="py-2 px-3 font-medium text-near-black">GPT-2</td>
+          <td class="py-2 px-3 text-right font-mono text-blue-violet">1.5B</td>
+          <td class="py-2 px-3 text-right font-mono text-gray-500">3 GB</td>
+          <td class="py-2 px-3 text-gray-500">2019</td>
+        </tr>
+        <tr class="bg-gray-50">
+          <td class="py-2 px-3 font-medium text-near-black">GPT-3</td>
+          <td class="py-2 px-3 text-right font-mono text-blue-violet">175B</td>
+          <td class="py-2 px-3 text-right font-mono text-gray-500">350 GB</td>
+          <td class="py-2 px-3 text-gray-500">2020</td>
+        </tr>
+        <tr class="bg-white">
+          <td class="py-2 px-3 font-medium text-near-black">LLaMA 2</td>
+          <td class="py-2 px-3 text-right font-mono text-blue-violet">70B</td>
+          <td class="py-2 px-3 text-right font-mono text-gray-500">140 GB</td>
+          <td class="py-2 px-3 text-gray-500">2023</td>
+        </tr>
+        <tr class="bg-gray-50">
+          <td class="py-2 px-3 font-medium text-near-black">GPT-4</td>
+          <td class="py-2 px-3 text-right font-mono text-blue-violet">~1.8T</td>
+          <td class="py-2 px-3 text-right font-mono text-gray-500">~3.6 TB</td>
+          <td class="py-2 px-3 text-gray-500">2023</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="prose-body text-sm text-gray-600 leading-relaxed max-w-prose space-y-4">
+    <p>
+      But parameters alone aren't enough. The scaling laws show that you need to scale
+      three things together: <strong>model size</strong> (parameters), <strong>data size</strong>
+      (training tokens), and <strong>compute</strong> (the training run itself). Double the
+      parameters without more data, and the model overfits. Double the data without more
+      parameters, and the model can't retain what it learns.
+    </p>
+    <p>
+      This is why the largest models require thousands of GPUs running for weeks. Training
+      a 70B parameter model on 2 trillion tokens costs millions of dollars in compute alone.
+      But the capability gains — from writing coherent essays to passing professional exams
+      to generating working code — justify the investment.
+    </p>
+  </div>
+</section>
+
+<!-- Section: The tradeoffs -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-4">
+    The tradeoffs of scale
+  </h2>
+  <div class="space-y-6">
+    <div class="flex gap-4">
+      <div class="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center"
+        style="color: #5E5CE6; background-color: #5E5CE612;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="2" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-sm font-heading font-medium text-near-black mb-1">
+          Inference cost
+        </h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Every time a model generates text, it computes through all its parameters.
+          A 70B model requires roughly 140 billion multiply-add operations per token
+          generated (forward pass through all layers). This means bigger models are
+          slower and more expensive to run — a key reason smaller models remain
+          practical for many applications.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex gap-4">
+      <div class="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center"
+        style="color: #7B79D6; background-color: #7B79D612;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-sm font-heading font-medium text-near-black mb-1">
+          Environmental impact
+        </h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          Training a large model consumes megawatt-hours of electricity — comparable
+          to the energy usage of hundreds of households over a year. The carbon footprint
+          of training GPT-3 was estimated at 500+ tons of CO₂. This has sparked debate
+          about whether the relentless pursuit of scale is sustainable.
+        </p>
+      </div>
+    </div>
+
+    <div class="flex gap-4">
+      <div class="flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center"
+        style="color: #9896C6; background-color: #9896C612;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4M12 16h.01" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-sm font-heading font-medium text-near-black mb-1">
+          Diminishing returns
+        </h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          The power-law scaling means each doubling of parameters gives smaller gains
+          than the last. Going from 1B to 2B params might double capability, but going
+          from 100B to 200B might only improve it by 40%. Some researchers argue we're
+          approaching the limits of what scale alone can deliver.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Key takeaways -->
+<section class="mb-12">
+  <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-4">
+    Key takeaways
+  </h2>
+  <div class="rounded-lg border border-gray-200 bg-gray-50 p-6">
+    <ul class="space-y-3 text-sm text-gray-600 leading-relaxed">
+      <li class="flex gap-2">
+        <span class="flex-shrink-0 text-blue-violet">→</span>
+        <span>Parameters are the model's memories — the numbers that encode everything it learned</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="flex-shrink-0 text-blue-violet">→</span>
+        <span>Weights connect neurons; biases shift activations. Together they define each layer's transformation</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="flex-shrink-0 text-blue-violet">→</span>
+        <span>Gradient descent adjusts parameters by learning from mistakes — the core training algorithm</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="flex-shrink-0 text-blue-violet">→</span>
+        <span>The embedding and output layers hold the most parameters in typical architectures</span>
+      </li>
+      <li class="flex gap-2">
+        <span class="flex-shrink-0 text-blue-violet">→</span>
+        <span>More parameters generally means more capability, but with growing cost and tradeoffs</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<NextSteps
+  accentColor="var(--color-blue-violet)"
+  items={[
+    { label: 'Tokenization', href: '/tokenization', description: 'How text becomes numbers' },
+    { label: 'Pre-training', href: '/pre-training', description: 'The foundation stage of model training' },
+  ]}
+/>
+
+<style>
+  .prose-body p {
+    margin-bottom: 0;
+  }
+</style>

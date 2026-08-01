@@ -1,0 +1,209 @@
+---
+import Layout from '../components/Layout.astro';
+import SidebarNav from '../components/SidebarNav.astro';
+import BottomNav from '../components/BottomNav.astro';
+import MainContent from '../components/MainContent.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import AgentSimulator from '../components/AgentSimulator.astro';
+import NextSteps from '../components/NextSteps.astro';
+---
+
+<Layout title="Agent Demo — AI Concepts Visualized" description="Watch an autonomous agent think, use tools, and respond — an interactive simulation connecting all the concepts you've learned.">
+  <SidebarNav activeSlug="agent-demo" />
+  <BottomNav activeTab="agentic" />
+  <MainContent>
+    <Breadcrumbs items={[
+      { label: 'Home', href: '/' },
+      { label: 'Agentic Use', href: '/agentic-use' },
+      { label: 'Agent Demo' },
+    ]} />
+
+    <!-- Hero -->
+    <header class="mb-12">
+      <span class="inline-flex items-center gap-2 mb-4">
+        <span class="w-2 h-2 rounded-full bg-teal" />
+        <span class="text-xs font-mono uppercase tracking-widest text-gray-400">Agentic Use</span>
+      </span>
+      <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+        Watch an Agent Think
+      </h1>
+      <p class="text-base text-gray-500 leading-relaxed max-w-prose mb-4">
+        Everything you've learned comes together here.
+      </p>
+      <p class="text-sm text-gray-500 leading-relaxed max-w-prose">
+        You've seen how tokens feed into a model, how pre-training builds knowledge, how SFT teaches
+        instruction-following, and how preference tuning shapes helpful behavior. Now watch it all
+        in action: an agent that <em>thinks</em> before acting, <em>calls tools</em> to gather
+        information, draws on <em>skills</em> for domain expertise, and connects to <em>external
+        services</em> via MCP — all orchestrated autonomously to solve real tasks.
+      </p>
+    </header>
+
+    <!-- Interactive simulator -->
+    <div class="mb-10">
+      <AgentSimulator />
+    </div>
+
+    <!-- How it works -->
+    <section class="mb-10">
+      <h2 class="text-lg font-heading font-medium text-near-black tracking-tight mb-3">
+        What You're Seeing
+      </h2>
+      <div class="text-sm text-gray-500 leading-relaxed space-y-3">
+        <p>
+          The simulation above mirrors how real agentic systems operate. Each step reveals a layer
+          of the pipeline you've explored throughout this site:
+        </p>
+      </div>
+
+      <div class="mt-6 space-y-4">
+        <!-- Tokenization -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-blue-violet/10 text-blue-violet font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16v16H4z" />
+              <path d="M4 9h16" />
+              <path d="M9 4v16" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">Tokenization</h3>
+            <p class="text-sm text-gray-500">
+              Your request is tokenized into sequences the model can process — the same subword
+              encoding you explored in the core concepts section.
+            </p>
+          </div>
+        </div>
+
+        <!-- Pre-training -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-coral/10 text-coral font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">Pre-training Knowledge</h3>
+            <p class="text-sm text-gray-500">
+              The agent's "thinking" steps draw on the vast knowledge encoded during pre-training —
+              understanding language, reasoning about problems, and planning multi-step approaches.
+            </p>
+          </div>
+        </div>
+
+        <!-- SFT -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-coral/10 text-coral font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 0-3 3L7 12l-4 4 4 4 9-9.5a2.12 2.12 0 0 0 3-3l-7-7z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">SFT &amp; Preference Tuning</h3>
+            <p class="text-sm text-gray-500">
+              The structured, helpful responses are shaped by supervised fine-tuning and preference
+              optimization — teaching the model to follow instructions and be genuinely useful.
+            </p>
+          </div>
+        </div>
+
+        <!-- Tool Calling -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-teal/10 text-teal font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l3.5-3.5a1 1 0 0 0 0-1.4l-1.3-1.3a1 1 0 0 0-1.4 0l-3.5 3.5Z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">Tool Calling</h3>
+            <p class="text-sm text-gray-500">
+              When the agent needs information beyond its training data, it generates structured
+              tool calls — exactly as you saw in the tool calling visualization.
+            </p>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-teal/10 text-teal font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16v16H4z" />
+              <path d="M4 9h16" />
+              <path d="M9 4v16" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">Skills</h3>
+            <p class="text-sm text-gray-500">
+              Domain-specific skills guide the agent's approach — whether debugging code, planning
+              a trip, or summarizing an article.
+            </p>
+          </div>
+        </div>
+
+        <!-- MCP -->
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-teal/10 text-teal font-mono font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-1">MCP Servers</h3>
+            <p class="text-sm text-gray-500">
+              The tools the agent uses connect to external services through standardized protocols
+              like MCP — enabling real-world data access and action.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key takeaway -->
+    <section class="mb-10">
+      <div class="rounded-lg border border-teal/20 bg-teal/6 p-6">
+        <div class="flex items-start gap-3">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="text-teal flex-shrink-0 mt-0.5"
+          >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-heading font-medium text-near-black tracking-tight mb-2">
+              The Full Picture
+            </h3>
+            <p class="text-sm text-gray-600 leading-relaxed">
+              An agentic AI system is the culmination of everything in this guide: <strong>tokenization</strong>
+              makes text computable, <strong>pre-training</strong> builds foundational knowledge,
+              <strong>SFT</strong> teaches instruction-following, <strong>preference tuning</strong>
+              shapes helpful behavior, <strong>tool calling</strong> enables real-world action,
+              <strong>skills</strong> provide domain expertise, and <strong>MCP</strong> connects
+              to external services. Together, they create an agent that doesn't just answer questions —
+              it <em>solves problems</em>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <NextSteps
+      accentColor="var(--color-teal)"
+      items={[
+        { label: 'MCP Servers', href: '/mcp-servers', description: 'The universal plug for AI tools' },
+        { label: 'Skills', href: '/skills', description: 'Reusable knowledge packages' },
+        { label: 'Tool Calling', href: '/tool-calling', description: 'Giving the agent hands to act' },
+      ]}
+    />
+  </MainContent>
+</Layout>

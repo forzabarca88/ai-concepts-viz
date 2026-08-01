@@ -1,0 +1,649 @@
+---
+// ToolCallFlow — Interactive visualization of the tool calling flow.
+// Shows a conversation turn where the agent decides to call a tool.
+// Animated step-by-step: user prompt → agent thinks → tool call → tool result → agent response.
+// Interactive: step-through buttons (next/previous); select different tool types (search, calculator, weather).
+// Uses teal accent color.
+
+import {
+  FLOW_STEPS,
+  TOOL_DEFINITIONS,
+  createToolCallFlowState,
+  advanceStep,
+  retreatStep,
+  resetFlow,
+  selectTool,
+  getSelectedTool,
+  canAdvance,
+  canRetreat,
+  getCurrentStep,
+} from '../lib/tool-call-flow';
+
+interface Props {
+  containerClass?: string;
+}
+
+const { containerClass = '' } = Astro.props;
+
+// Serialize data for embedding in data attribute
+const stepsJson = JSON.stringify(FLOW_STEPS);
+const toolsJson = JSON.stringify(TOOL_DEFINITIONS);
+---
+
+<div
+  data-tool-call-flow-root
+  class={`rounded-lg border border-gray-200 bg-white shadow-subtle overflow-hidden ${containerClass}`}
+  data-steps={stepsJson}
+  data-tools={toolsJson}
+>
+  <!-- Header -->
+  <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+    <h3 class="text-sm font-heading font-medium text-near-black tracking-tight mb-1">
+      Tool Calling Flow
+    </h3>
+    <p class="text-xs text-gray-500">
+      Step through the complete cycle — from user prompt to agent response.
+    </p>
+  </div>
+
+  <!-- Tool selector -->
+  <div class="px-5 py-3 border-b border-gray-100">
+    <label class="block text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">
+      Select a tool
+    </label>
+    <div data-tool-selector role="group" aria-label="Available tools" class="flex flex-wrap gap-2" />
+  </div>
+
+  <!-- Flow step indicators -->
+  <div class="px-6 py-4 border-b border-gray-100">
+    <div data-step-indicators role="navigation" aria-label="Tool calling flow steps" class="flex items-center justify-between relative">
+      <!-- Progress line -->
+      <div data-progress-line class="absolute top-1/2 left-4 right-4 h-0.5 bg-gray-200 -translate-y-1/2 z-0" />
+      <div data-progress-fill class="absolute top-1/2 left-4 h-0.5 bg-teal -translate-y-1/2 z-10 transition-all duration-500 ease-out" style="width: 0%" />
+
+      <!-- Step dots -->
+      {FLOW_STEPS.map((step, index) => (
+        <button
+          type="button"
+          data-step-dot
+          data-step-index={index}
+          data-step-id={step.id}
+          aria-label={`Step ${index + 1}: ${step.label}`}
+          class="relative z-20 flex flex-col items-center gap-1 cursor-pointer group"
+        >
+          <div
+            data-step-circle
+            class="w-8 h-8 rounded-full flex items-center justify-center border-2 border-gray-200 bg-white transition-all duration-300"
+          >
+            <span data-step-icon class="text-base leading-none">{step.icon}</span>
+          </div>
+          <span data-step-label class="text-[10px] font-mono text-gray-400 uppercase tracking-wide transition-colors duration-300">
+            {step.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <!-- Step detail panel -->
+  <div data-step-detail role="region" aria-label="Step detail" class="px-5 py-5">
+    <!-- Step title -->
+    <div data-step-title class="flex items-center gap-2 mb-1">
+      <span data-step-title-icon class="text-base leading-none">💬</span>
+      <h4 data-step-title-text class="text-sm font-heading font-medium text-near-black tracking-tight">
+        User Prompt
+      </h4>
+    </div>
+
+    <!-- Step description -->
+    <p data-step-description class="text-xs text-gray-500 leading-relaxed mb-3">
+      You send a message to the agent.
+    </p>
+
+    <!-- Step content (contextual based on step and tool) -->
+    <div data-step-content class="rounded-md bg-gray-50 border border-gray-100 p-4 overflow-hidden" aria-live="polite">
+      <!-- Dynamic content injected by JS -->
+    </div>
+  </div>
+
+  <!-- Navigation controls -->
+  <div class="px-5 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+    <!-- Previous button -->
+    <button
+      type="button"
+      data-flow-prev
+      aria-label="Previous step"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 text-gray-600 bg-white hover:border-teal hover:text-teal transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+      Previous
+    </button>
+
+    <!-- Step counter -->
+    <span data-step-counter class="text-xs font-mono text-gray-400" aria-live="polite">
+      1 / 5
+    </span>
+
+    <!-- Next button -->
+    <button
+      type="button"
+      data-flow-next
+      aria-label="Next step"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-teal/30 text-teal bg-teal/8 hover:bg-teal/14 transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      Next
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18l6-6-6-6" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Legend -->
+  <div class="px-5 py-3 border-t border-gray-100 bg-gray-50">
+    <div class="flex items-center gap-4 text-xs text-gray-500">
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full bg-teal inline-block" />
+        Active step
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full border-2 border-teal bg-white inline-block" />
+        Completed
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-full border-2 border-gray-200 bg-white inline-block" />
+        Upcoming
+      </span>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Step dot states */
+  [data-step-circle].active {
+    border-color: #00C4B0;
+    background-color: #00C4B0;
+    color: white;
+    box-shadow: 0 0 0 3px #00C4B033;
+  }
+
+  [data-step-circle].completed {
+    border-color: #00C4B0;
+    background-color: #00C4B018;
+    color: #00C4B0;
+  }
+
+  [data-step-label].active {
+    color: #00C4B0;
+    font-weight: 600;
+  }
+
+  [data-step-label].completed {
+    color: #00C4B0;
+  }
+
+  /* Progress line */
+  [data-progress-line] {
+    pointer-events: none;
+  }
+
+  [data-progress-fill] {
+    pointer-events: none;
+  }
+</style>
+
+<!-- Global styles for dynamically injected content -->
+<style is:global>
+  /* Tool selector button */
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid #E5E5E5;
+    background: white;
+    color: #737373;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .tool-btn:hover {
+    border-color: #00C4B0;
+    color: #00C4B0;
+  }
+
+  .tool-btn.active {
+    border-color: #00C4B0;
+    color: #00C4B0;
+    background-color: #00C4B010;
+  }
+
+  .tool-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Content inner wrapper - constrains height */
+  .flow-content-inner {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .flow-content-inner::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .flow-content-inner::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .flow-content-inner::-webkit-scrollbar-thumb {
+    background: #D4D4D4;
+    border-radius: 9999px;
+  }
+
+  /* Code block styling */
+  .flow-code-block {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.6;
+    background: #1D1D1F;
+    color: #FAFAF8;
+    padding: 10px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre;
+    word-break: break-word;
+  }
+
+  .flow-code-block .key {
+    color: #00C4B0;
+  }
+
+  .flow-code-block .string {
+    color: #FF6B50;
+  }
+
+  .flow-code-block .bracket {
+    color: #A3A3A3;
+  }
+
+  /* Chat bubble styling */
+  .flow-chat-bubble {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+
+  .flow-chat-bubble.user {
+    background: #00C4B012;
+    border: 1px solid #00C4B033;
+    color: #1D1D1F;
+  }
+
+  .flow-chat-bubble.agent {
+    background: #FAFAF8;
+    border: 1px solid #E5E5E5;
+    color: #1D1D1F;
+  }
+
+  .flow-chat-bubble .sender {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+</style>
+
+<script>
+  import {
+    FLOW_STEPS,
+    TOOL_DEFINITIONS,
+    createToolCallFlowState,
+    advanceStep,
+    retreatStep,
+    resetFlow,
+    selectTool,
+    getSelectedTool,
+    canAdvance,
+    canRetreat,
+    getCurrentStep,
+  } from '../lib/tool-call-flow';
+
+  type FlowStep = typeof FLOW_STEPS[number];
+  type ToolDef = typeof TOOL_DEFINITIONS[number];
+
+  interface FlowInstance {
+    state: ReturnType<typeof createToolCallFlowState>;
+    steps: FlowStep[];
+    tools: ToolDef[];
+    root: HTMLElement;
+    prevBtn: HTMLButtonElement | null;
+    nextBtn: HTMLButtonElement | null;
+    counter: HTMLElement | null;
+    progressFill: HTMLElement | null;
+    stepTitleIcon: HTMLElement | null;
+    stepTitleText: HTMLElement | null;
+    stepDescription: HTMLElement | null;
+    stepContent: HTMLElement | null;
+    toolSelector: HTMLElement | null;
+  }
+
+  // ── Content generators for each step ─────────────────────────────
+
+  function renderUserPrompt(tool: ToolDef): string {
+    const prompts: Record<string, string> = {
+      search: 'What are the latest AI breakthroughs in 2025?',
+      calculator: 'What is 47.3 times 12.8 plus the square root of 144?',
+      weather: 'What is the weather like in Tokyo right now?',
+    };
+    return prompts[tool.id] || prompts.search;
+  }
+
+  function renderAgentThinks(tool: ToolDef): string {
+    return `
+<div class="flow-chat-bubble agent">
+  <div class="sender">Agent</div>
+  <p class="mb-2">I need to use a tool to answer this accurately.</p>
+  <div class="text-xs text-gray-400 italic">
+    Thinking: "${tool.name}" is the right tool for this request.
+  </div>
+</div>`;
+  }
+
+  function renderToolCall(tool: ToolDef): string {
+    const args = tool.exampleArgs;
+    const argsJson = JSON.stringify(args, null, 2);
+    // Syntax highlight the JSON
+    const highlighted = argsJson
+      .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+      .replace(/: "([^"]+)"/g, ': <span class="string">"$1"</span>')
+      .replace(/: (\d+)/g, ': <span class="string">$1</span>')
+      .replace(/[{}]/g, '<span class="bracket">$&</span>');
+
+    return `
+<div class="mb-3">
+  <div class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">Tool invocation</div>
+  <div class="flow-code-block"><span class="bracket">{</span>
+  <span class="key">"name"</span>: <span class="string">"${tool.name}"</span>,
+  <span class="key">"arguments"</span>: <span class="bracket">{</span>${highlighted}
+  <span class="bracket">}</span>
+<span class="bracket">}</span></div>
+</div>
+<div class="text-xs text-gray-400">
+  The model outputs structured JSON specifying the tool and its parameters.
+</div>`;
+  }
+
+  function renderToolResult(tool: ToolDef): string {
+    return `
+<div class="mb-3">
+  <div class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-2">Tool output</div>
+  <div class="flow-code-block">${tool.exampleResult}</div>
+</div>
+<div class="text-xs text-gray-400">
+  The runtime executes the tool and feeds the result back into the model.
+</div>`;
+  }
+
+  function renderAgentResponse(tool: ToolDef): string {
+    const responses: Record<string, string> = {
+      search: `Here are some of the most significant AI breakthroughs in 2025:
+
+<strong>1. Major advances in reasoning models</strong> — Nature published findings showing reasoning-based models achieving superhuman performance on complex problem-solving tasks.
+
+<strong>2. Open-source LLMs reach new benchmarks</strong> — Several open-source models have matched or exceeded proprietary models on standard benchmarks.
+
+<strong>3. AI safety frameworks updated</strong> — The OECD released updated governance frameworks for AI deployment across member nations.`,
+      calculator: `The result is <strong>622.44</strong>.
+
+Here's the breakdown:
+• 47.3 × 12.8 = 605.44
+• √144 = 12
+• 605.44 + 12 = <strong>622.44</strong>`,
+      weather: `The current weather in <strong>Tokyo</strong> is:
+
+• 🌡️ Temperature: 18°C
+• 💧 Humidity: 65%
+• ☁️ Condition: Partly Cloudy
+• 💨 Wind: 12 km/h NW
+
+A pleasant day — light layers should be comfortable!`,
+    };
+    const text = responses[tool.id] || responses.search;
+    return `
+<div class="flow-chat-bubble agent">
+  <div class="sender">Agent</div>
+  <div>${text}</div>
+</div>`;
+  }
+
+  function getStepContent(stepId: string, tool: ToolDef): string {
+    let content = '';
+    switch (stepId) {
+      case 'user-prompt':
+        content = `
+<div class="flow-chat-bubble user">
+  <div class="sender">You</div>
+  <p>${renderUserPrompt(tool)}</p>
+</div>
+<div class="mt-2 text-xs text-gray-400">
+  The user sends a request that requires external information or computation.
+</div>`;
+        break;
+      case 'agent-thinks':
+        content = renderAgentThinks(tool);
+        break;
+      case 'tool-call':
+        content = renderToolCall(tool);
+        break;
+      case 'tool-result':
+        content = renderToolResult(tool);
+        break;
+      case 'agent-response':
+        content = renderAgentResponse(tool);
+        break;
+      default:
+        content = '';
+    }
+    // Wrap in container to prevent overflow
+    return `<div class="flow-content-inner">${content}</div>`;
+  }
+
+  // ── Render functions ─────────────────────────────────────────────
+
+  function buildToolButtons(instance: FlowInstance): void {
+    if (!instance.toolSelector) return;
+    instance.toolSelector.innerHTML = '';
+
+    instance.tools.forEach(tool => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tool-btn';
+      btn.setAttribute('data-tool-id', tool.id);
+      btn.setAttribute('aria-label', tool.name);
+
+      if (instance.state.selectedToolId === tool.id) {
+        btn.classList.add('active');
+      }
+
+      // Build icon + label with properly sized SVG
+      const iconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${tool.icon}" /></svg>`;
+      btn.innerHTML = `${iconSvg}<span>${tool.name}</span>`;
+
+      btn.addEventListener('click', () => {
+        selectTool(instance.state, tool.id);
+        updateView(instance);
+
+        // Update active state on buttons
+        instance.toolSelector.querySelectorAll('.tool-btn').forEach(b => {
+          b.classList.toggle('active', b.getAttribute('data-tool-id') === tool.id);
+        });
+      });
+
+      instance.toolSelector.appendChild(btn);
+    });
+  }
+
+  function updateStepIndicators(instance: FlowInstance): void {
+    const { state, steps, root } = instance;
+
+    // Update progress fill - calculate based on step position
+    if (instance.progressFill) {
+      const totalSteps = steps.length - 1;
+      const progress = (state.currentStepIndex / totalSteps) * 100;
+      instance.progressFill.style.width = `${progress}%`;
+    }
+
+    // Update step dots
+    const dots = root.querySelectorAll('[data-step-dot]');
+    dots.forEach((dot, index) => {
+      const circle = dot.querySelector('[data-step-circle]') as HTMLElement;
+      const label = dot.querySelector('[data-step-label]') as HTMLElement;
+
+      circle.classList.remove('active', 'completed');
+      label.classList.remove('active', 'completed');
+
+      if (index === state.currentStepIndex) {
+        circle.classList.add('active');
+        label.classList.add('active');
+        (dot as HTMLElement).setAttribute('aria-current', 'step');
+      } else {
+        (dot as HTMLElement).removeAttribute('aria-current');
+      }
+
+      if (index < state.currentStepIndex) {
+        circle.classList.add('completed');
+        label.classList.add('completed');
+      }
+
+      // Click to jump to step (button elements respond to Enter/Space natively)
+      dot.addEventListener('click', () => {
+        instance.state.currentStepIndex = index;
+        updateView(instance);
+      });
+    });
+  }
+
+  function updateStepDetail(instance: FlowInstance): void {
+    const { state, root } = instance;
+    const currentStep = getCurrentStep(state);
+    const tool = getSelectedTool(state.selectedToolId);
+    if (!tool) return;
+
+    if (instance.stepTitleIcon) {
+      instance.stepTitleIcon.textContent = currentStep.icon;
+    }
+    if (instance.stepTitleText) {
+      instance.stepTitleText.textContent = currentStep.label;
+    }
+    if (instance.stepDescription) {
+      instance.stepDescription.textContent = currentStep.description;
+    }
+    if (instance.stepContent) {
+      // Clear old content and set new content directly
+      instance.stepContent.innerHTML = getStepContent(currentStep.id, tool);
+    }
+
+    // Update counter
+    if (instance.counter) {
+      instance.counter.textContent = `${state.currentStepIndex + 1} / ${FLOW_STEPS.length}`;
+    }
+
+    // Update button states
+    if (instance.prevBtn) {
+      instance.prevBtn.disabled = !canRetreat(state);
+    }
+    if (instance.nextBtn) {
+      instance.nextBtn.disabled = !canAdvance(state);
+    }
+  }
+
+  function updateView(instance: FlowInstance): void {
+    updateStepIndicators(instance);
+    updateStepDetail(instance);
+  }
+
+  // ── Initialization ───────────────────────────────────────────────
+
+  function initFlow(root: HTMLElement): void {
+    const steps = JSON.parse(root.dataset.steps || '[]');
+    const tools = JSON.parse(root.dataset.tools || '[]');
+
+    const instance: FlowInstance = {
+      state: createToolCallFlowState(),
+      steps,
+      tools,
+      root,
+      prevBtn: root.querySelector('[data-flow-prev]'),
+      nextBtn: root.querySelector('[data-flow-next]'),
+      counter: root.querySelector('[data-step-counter]'),
+      progressFill: root.querySelector('[data-progress-fill]'),
+      stepTitleIcon: root.querySelector('[data-step-title-icon]'),
+      stepTitleText: root.querySelector('[data-step-title-text]'),
+      stepDescription: root.querySelector('[data-step-description]'),
+      stepContent: root.querySelector('[data-step-content]'),
+      toolSelector: root.querySelector('[data-tool-selector]'),
+    };
+
+    // Build tool selector buttons
+    buildToolButtons(instance);
+
+    // Navigation
+    if (instance.prevBtn) {
+      instance.prevBtn.addEventListener('click', () => {
+        retreatStep(instance.state);
+        updateView(instance);
+      });
+    }
+
+    if (instance.nextBtn) {
+      instance.nextBtn.addEventListener('click', () => {
+        advanceStep(instance.state);
+        updateView(instance);
+      });
+    }
+
+    // Keyboard navigation
+    root.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        retreatStep(instance.state);
+        updateView(instance);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        advanceStep(instance.state);
+        updateView(instance);
+      }
+    });
+
+    // Initial render
+    updateView(instance);
+  }
+
+  function init() {
+    document.querySelectorAll('[data-tool-call-flow-root]').forEach(root => {
+      initFlow(root as HTMLElement);
+    });
+  }
+
+  // Use requestAnimationFrame to ensure DOM is fully ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(init);
+    });
+  } else {
+    requestAnimationFrame(init);
+  }
+</script>

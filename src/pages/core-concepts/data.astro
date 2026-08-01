@@ -1,0 +1,18 @@
+---
+import Layout from '../../components/Layout.astro';
+import SidebarNav from '../../components/SidebarNav.astro';
+import BottomNav from '../../components/BottomNav.astro';
+import MainContent from '../../components/MainContent.astro';
+import DataContent from '../../components/DataContent.astro';
+---
+
+<Layout
+  title="Data — AI Concepts Visualized"
+  description="How large language models learn from text: the data pipeline from raw web crawls to curated training corpora."
+>
+  <SidebarNav activeSlug="data" />
+  <BottomNav activeTab="core" />
+  <MainContent>
+    <DataContent />
+  </MainContent>
+</Layout>

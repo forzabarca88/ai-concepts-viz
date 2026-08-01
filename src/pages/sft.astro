@@ -1,0 +1,300 @@
+---
+import Layout from '../components/Layout.astro';
+import SidebarNav from '../components/SidebarNav.astro';
+import BottomNav from '../components/BottomNav.astro';
+import MainContent from '../components/MainContent.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import SFTDemo from '../components/SFTDemo.astro';
+import NextSteps from '../components/NextSteps.astro';
+---
+
+<Layout
+  title="Supervised Fine-Tuning — AI Concepts Visualized"
+  description="How teaching a model to follow instructions transforms a base model into a helpful assistant."
+>
+  <SidebarNav activeSlug="sft" />
+  <BottomNav activeTab="training" />
+  <MainContent>
+    <Breadcrumbs items={[
+      { label: 'Home', href: '/' },
+      { label: 'Training Stages', href: '/training-stages' },
+      { label: 'Supervised Fine-Tuning' },
+    ]} />
+
+    <!-- Hero -->
+    <header class="mb-12">
+      <span class="inline-flex items-center gap-2 mb-4">
+        <span class="w-2 h-2 rounded-full bg-coral" />
+        <span class="text-xs font-mono uppercase tracking-widest text-gray-400">Stage 2 of 3</span>
+      </span>
+      <h1 class="text-2xl font-heading font-semibold text-near-black tracking-tight mb-3">
+        Supervised Fine-Tuning
+      </h1>
+      <p class="text-base text-gray-500 leading-relaxed max-w-prose mb-4">
+        Imagine giving the model a teacher. Where pre-training had the model learn from everything
+        on the internet, SFT pairs it with a curated set of examples showing exactly how to respond
+        to instructions — turning a knowledgeable model into a helpful one.
+      </p>
+      <div class="flex items-center gap-2 text-sm text-coral">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h10M4 18h13" />
+        </svg>
+        <span class="font-medium">Giving the model a teacher</span>
+      </div>
+    </header>
+
+    <!-- Interactive demo -->
+    <section class="mb-12">
+      <SFTDemo />
+    </section>
+
+    <!-- What is SFT? -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        What Is Supervised Fine-Tuning?
+      </h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">
+        Supervised Fine-Tuning (SFT) is the training stage that sits between pre-training and
+        preference tuning. It takes a base model that has learned language patterns from vast
+        corpora and teaches it to follow instructions by training on carefully curated
+        instruction-response pairs.
+      </p>
+      <p class="text-sm text-gray-600 leading-relaxed mb-4">
+        The key insight is simple: if you show a model thousands of examples of good
+        instruction-following behavior, it learns to replicate that pattern. Instead of just
+        predicting the next token in a Wikipedia article, the model learns to recognize when
+        someone is asking a question, requesting a summary, or asking for creative writing —
+        and responds appropriately.
+      </p>
+      <div class="rounded-lg border border-coral/20 bg-coral/6 p-5">
+        <p class="text-sm text-gray-700 leading-relaxed">
+          <strong class="text-coral">The core idea:</strong> Pre-training teaches the model <em>what</em> to say
+          (knowledge). SFT teaches the model <em>how</em> to say it (behavior).
+        </p>
+      </div>
+    </section>
+
+    <!-- Why SFT matters -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        Why SFT Matters
+      </h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-6">
+        Without SFT, a pre-trained model is like a brilliant but directionless scholar — it knows
+        a tremendous amount but doesn't know how to be useful. SFT bridges this gap.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center">
+              <span class="text-sm font-mono font-bold text-coral">1</span>
+            </div>
+            <h3 class="text-sm font-heading font-medium text-near-black">Instruction Following</h3>
+          </div>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            The model learns to recognize and respond to different types of instructions —
+            questions, commands, creative requests — rather than just continuing text.
+          </p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center">
+              <span class="text-sm font-mono font-bold text-coral">2</span>
+            </div>
+            <h3 class="text-sm font-heading font-medium text-near-black">Response Format</h3>
+          </div>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            SFT teaches structured output: when to use lists, when to write paragraphs, when to
+            provide code blocks, and how to match the expected format.
+          </p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center">
+              <span class="text-sm font-mono font-bold text-coral">3</span>
+            </div>
+            <h3 class="text-sm font-heading font-medium text-near-black">Tone &amp; Style</h3>
+          </div>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            The model learns to adopt a helpful, informative tone rather than generating text
+            in whatever style it encountered during pre-training.
+          </p>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-md bg-coral/10 flex items-center justify-center">
+              <span class="text-sm font-mono font-bold text-coral">4</span>
+            </div>
+            <h3 class="text-sm font-heading font-medium text-near-black">Task Adaptation</h3>
+          </div>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Domain-specific SFT can specialize a general model for tasks like coding, medical
+            diagnosis, or legal analysis by training on expert-curated examples.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How SFT differs from pre-training -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        How SFT Differs From Pre-training
+      </h2>
+      <p class="text-sm text-gray-600 leading-relaxed mb-6">
+        Both stages use the same underlying mechanism — updating weights by minimizing prediction
+        loss. But everything else about the two stages is fundamentally different.
+      </p>
+      <div class="overflow-hidden rounded-lg border border-gray-200">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 bg-gray-50">
+              <th class="text-left px-5 py-3 font-mono uppercase tracking-widest text-xs text-gray-400">
+                Aspect
+              </th>
+              <th class="text-left px-5 py-3 font-medium text-coral">
+                Pre-training
+              </th>
+              <th class="text-left px-5 py-3 font-medium text-coral">
+                SFT
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr>
+              <td class="px-5 py-3 font-mono text-xs text-gray-400">Data</td>
+              <td class="px-5 py-3 text-gray-600">Trillions of raw tokens from the internet</td>
+              <td class="px-5 py-3 text-gray-600">Thousands of curated instruction-response pairs</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-xs text-gray-400">Goal</td>
+              <td class="px-5 py-3 text-gray-600">Learn language patterns &amp; world knowledge</td>
+              <td class="px-5 py-3 text-gray-600">Learn to follow instructions</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-xs text-gray-400">Scale</td>
+              <td class="px-5 py-3 text-gray-600">Massive — months on thousands of GPUs</td>
+              <td class="px-5 py-3 text-gray-600">Modest — hours to days on a single GPU</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-xs text-gray-400">Data quality</td>
+              <td class="px-5 py-3 text-gray-600">Filtered but still noisy and diverse</td>
+              <td class="px-5 py-3 text-gray-600">Human-written or carefully verified</td>
+            </tr>
+            <tr>
+              <td class="px-5 py-3 font-mono text-xs text-gray-400">Output</td>
+              <td class="px-5 py-3 text-gray-600">Base model — knowledgeable but unhelpful</td>
+              <td class="px-5 py-3 text-gray-600">Instruct model — helpful but misaligned</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- The SFT training process -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        The SFT Training Process
+      </h2>
+      <div class="space-y-4">
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">1</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Collect Seed Data</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Start with a small dataset of high-quality instruction-response pairs. These may be
+              written by human annotators, synthesized from the base model itself, or extracted
+              from existing QA datasets.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">2</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Format as Training Examples</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Each example is formatted as a prompt-response pair, often with special tokens
+              marking the instruction and response boundaries (e.g., "### Instruction:" and
+              "### Response:"). The model trains to predict the response given the instruction.
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">3</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Train on Response Tokens</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              The loss is computed only on the response tokens — the model learns to generate the
+              correct response given the instruction, without being penalized for "predicting" the
+              instruction itself (which is given as input).
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-4">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full bg-coral/10 border border-coral/30 flex items-center justify-center">
+            <span class="text-xs font-mono font-bold text-coral">4</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-near-black mb-0.5">Iterate &amp; Expand</h3>
+            <p class="text-xs text-gray-500 leading-relaxed">
+              Early SFT rounds may use model-generated data to expand the dataset. Subsequent
+              rounds refine the model further. This self-instruct loop helps cover edge cases and
+              improves overall instruction-following capability.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key considerations -->
+    <section class="mb-12">
+      <h2 class="text-lg font-heading font-semibold text-near-black tracking-tight mb-4">
+        Key Considerations
+      </h2>
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-5 mb-4">
+        <h3 class="text-sm font-heading font-medium text-near-black mb-2">
+          <span class="text-coral mr-2">⚠</span>Catastrophic Forgetting
+        </h3>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          Aggressive fine-tuning can cause the model to forget knowledge learned during
+          pre-training. The trick is tuning enough to gain instruction-following ability while
+          preserving the broad knowledge base. Techniques like low-rank adaptation (LoRA) help
+          mitigate this risk.
+        </p>
+      </div>
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-5 mb-4">
+        <h3 class="text-sm font-heading font-medium text-near-black mb-2">
+          <span class="text-coral mr-2">⚠</span>Data Quality Over Quantity
+        </h3>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          SFT is sensitive to data quality. A small dataset of excellent examples often produces
+          better results than a large dataset of mediocre ones. The style and quality of the
+          training data directly shapes the model's output style.
+        </p>
+      </div>
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+        <h3 class="text-sm font-heading font-medium text-near-black mb-2">
+          <span class="text-coral mr-2">⚠</span>SFT Is Not Enough
+        </h3>
+        <p class="text-xs text-gray-500 leading-relaxed">
+          SFT makes a model helpful, but not necessarily aligned with human values. A model can
+          follow instructions to do harmful things. The next stage — preference tuning (RLHF or
+          DPO) — addresses safety and value alignment.
+        </p>
+      </div>
+    </section>
+
+    <NextSteps
+      accentColor="var(--color-coral)"
+      items={[
+        { label: 'Pre-training', href: '/pre-training', description: 'The foundation stage' },
+        { label: 'Preference Tuning', href: '/preference-tuning', description: 'Aligning to human values' },
+      ]}
+    />
+  </MainContent>
+</Layout>
