@@ -1,0 +1,221 @@
+/* ============================================================
+   Preference fine-tuning ("06 · How it's trained").
+   Every rule is scoped under .page--preferences.
+   ============================================================ */
+
+/* ---------- stage head ---------- */
+.page--preferences .pref-head {
+  max-width: 60ch;
+}
+
+.page--preferences .pref-sub {
+  margin-top: var(--space-2);
+  max-width: 52ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+/* ---------- the prompt bubble ---------- */
+.page--preferences .pref-prompt {
+  align-self: flex-start;
+  max-width: 44ch;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* ---------- the two answer cards ---------- */
+.page--preferences .pref-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  align-items: stretch;
+}
+
+.page--preferences .pref-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+/* the chosen answer wears the amber ring (chosen/attention) */
+.page--preferences .pref-card--chosen {
+  border-color: var(--amber);
+  box-shadow:
+    0 0 0 3px rgba(255, 176, 32, 0.22),
+    0 0 28px rgba(255, 176, 32, 0.15);
+}
+
+.page--preferences .pref-card-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--preferences .pref-card--chosen .pref-card-label {
+  color: var(--amber);
+}
+
+.page--preferences .pref-answer {
+  flex: 1;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--on-stage);
+  white-space: pre-line;
+}
+
+.page--preferences .pref-card-foot {
+  margin-top: auto;
+}
+
+/* the pressed vote button glows amber like the chosen ring */
+.page--preferences .pref-vote[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.12);
+  color: var(--amber);
+  box-shadow: 0 0 16px rgba(255, 176, 32, 0.18);
+}
+
+/* ---------- reward meter ---------- */
+.page--preferences .pref-meter {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+}
+
+.page--preferences .pref-meter-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.page--preferences .pref-meter-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--preferences .pref-meter-note {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  color: var(--on-stage-soft);
+}
+
+.page--preferences .pref-meter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.page--preferences .pref-meter-side {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 700;
+  color: var(--on-stage);
+}
+
+.page--preferences .pref-meter-value {
+  min-width: 2.5ch;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  text-align: center;
+  color: var(--on-stage-soft);
+}
+
+.page--preferences .pref-meter-track {
+  position: relative;
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--stage);
+}
+
+.page--preferences .pref-meter-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transition: width var(--dur-med) var(--ease-out);
+}
+
+.page--preferences .pref-meter-fill--a {
+  left: 0;
+  background: var(--accent-glow);
+}
+
+.page--preferences .pref-meter-fill--b {
+  right: 0;
+  background: var(--on-stage-soft);
+}
+
+/* ---------- the new-model answer panel ---------- */
+.page--preferences .pref-trained {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed rgba(110, 133, 255, 0.5);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  transition: border-color var(--dur-med) var(--ease-out);
+}
+
+/* fully trained — the mint success signal */
+.page--preferences .pref-trained--done {
+  border-color: rgba(34, 196, 142, 0.5);
+}
+
+.page--preferences .pref-trained-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.page--preferences .pref-trained-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-glow);
+}
+
+.page--preferences .pref-trained--done .pref-trained-label {
+  color: var(--mint);
+}
+
+.page--preferences .pref-trained-text {
+  min-height: 4.25rem;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--preferences .pref-cards {
+    grid-template-columns: 1fr;
+  }
+}

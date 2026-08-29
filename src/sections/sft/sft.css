@@ -1,0 +1,286 @@
+/* ============================================================
+   Supervised fine-tuning ("05 · How it's trained").
+   Every rule is scoped under .page--sft.
+   ============================================================ */
+
+/* ---------- stage head + prompt picker ---------- */
+.page--sft .sft-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.page--sft .sft-sub {
+  margin-top: var(--space-2);
+  max-width: 46ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-pickers {
+  flex-shrink: 0;
+  padding-top: var(--space-1);
+}
+
+.page--sft .sft-pickers-label {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.page--sft .sft-pick {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+  color: var(--on-stage-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out);
+}
+
+.page--sft .sft-pick:hover {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+/* the picked prompt glows amber (chosen/attention) */
+.page--sft .sft-pick[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.12);
+  color: var(--on-stage);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.18);
+}
+
+/* ---------- the two chat panels ---------- */
+.page--sft .sft-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  align-items: stretch;
+}
+
+.page--sft .sft-panel {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+/* the coached panel carries the "good" signal */
+.page--sft .sft-panel--instruct {
+  border-color: rgba(34, 196, 142, 0.45);
+}
+
+.page--sft .sft-panel-label {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-panel--instruct .sft-panel-label {
+  color: var(--mint);
+}
+
+.page--sft .sft-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page--sft .sft-msg {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.page--sft .sft-msg--user {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* base answer: raw, mono, dashed — a next-word reflex on tape */
+.page--sft .sft-msg--raw {
+  min-height: 8.5rem;
+  border: 1px dashed rgba(159, 168, 188, 0.4);
+  background: var(--stage-2);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--on-stage-soft);
+}
+
+/* instruct answer: clean, structured, helpful */
+.page--sft .sft-msg--coached {
+  min-height: 8.5rem;
+  white-space: pre-line;
+  background: var(--stage-2);
+  color: var(--on-stage);
+}
+
+/* ---------- training-data strip ---------- */
+.page--sft .sft-strip {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+}
+
+.page--sft .sft-strip-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.page--sft .sft-strip-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-strip-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--on-stage);
+}
+
+.page--sft .sft-quality-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.page--sft .sft-quality-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-quality-track {
+  flex: 1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--stage);
+}
+
+.page--sft .sft-quality-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-glow);
+}
+
+/* at full quality the bar turns mint (success) */
+.page--sft .sft-quality-fill--high {
+  background: var(--mint);
+}
+
+.page--sft .sft-quality-value {
+  min-width: 3.5ch;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-align: right;
+  color: var(--on-stage);
+}
+
+.page--sft .sft-quality-note {
+  margin-top: var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--amber);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--amber);
+}
+
+/* ---------- the training-pair card ---------- */
+.page--sft .sft-pair {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed rgba(110, 133, 255, 0.5);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+}
+
+.page--sft .sft-pair-title {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-glow);
+}
+
+.page--sft .sft-pair-line {
+  display: grid;
+  gap: 2px;
+}
+
+.page--sft .sft-pair-line + .sft-pair-line {
+  margin-top: var(--space-3);
+}
+
+.page--sft .sft-pair-key {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--sft .sft-pair-text {
+  white-space: pre-line;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--sft .sft-head {
+    flex-direction: column;
+  }
+
+  .page--sft .sft-panels {
+    grid-template-columns: 1fr;
+  }
+}

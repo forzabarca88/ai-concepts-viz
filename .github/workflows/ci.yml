@@ -1,0 +1,112 @@
+# CI + GitHub Pages deployment.
+#
+# - `ci`: runs on every push and pull request — build, unit tests, and the
+#   Playwright e2e/screenshot suite.
+# - `deploy`: runs only on pushes to `main` — publishes `dist/` to GitHub
+#   Pages. Requires the repo to have Pages enabled with "Source: GitHub
+#   Actions" (repo Settings → Pages → Build and deployment → Source).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Standard permissions for GitHub Pages deployments (from the official
+# github/pages starter): `deploy-pages` publishes through the repo's Pages
+# service, and the deployment is gated by the `github-pages` environment
+# (see the `deploy` job below) — that is how GitHub Pages + Actions auth works.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel an in-flight deployment (official Pages starter guard).
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Build, test, screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node 24 — matches the local toolchain (developed on Node 24.15).
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Typecheck (tsc --noEmit) + production build to dist/.
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test
+
+      # GitHub runners have no cached browsers; --with-deps also installs the
+      # SwiftShader/OpenGL system libraries the Three.js scenes need.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # e2e suite (builds + previews the app itself via the Playwright webServer).
+      - name: E2E + screenshot tests
+        run: npm run e2e
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      # The `github-pages` environment is the auth gate: GitHub only allows
+      # workflows running under this environment to publish to the repo's
+      # Pages site.
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Part of the official GitHub Pages starter (Pages context setup).
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

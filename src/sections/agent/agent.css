@@ -1,0 +1,305 @@
+/* ============================================================
+   Agent demo — the finale ("10 · Going agentic").
+   Every rule is scoped under .page--agent.
+   The stage height is state-invariant (the timeline is a fixed-height
+   scrollable region), so every capture frames the same slice.
+   ============================================================ */
+
+/* ---------- stage head: title + loop badge ---------- */
+.page--agent .agent-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.page--agent .agent-sub {
+  margin-top: var(--space-2);
+  max-width: 62ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+/* ---------- loop badge (Think → Act → Observe ↻ Repeat) ---------- */
+.page--agent .agent-loop {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-pill);
+  background: var(--stage-2);
+}
+
+.page--agent .agent-loop-step {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid rgba(159, 168, 188, 0.35);
+  border-radius: var(--radius-pill);
+  background: var(--stage);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--on-stage-soft);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    opacity var(--dur-med) var(--ease-out);
+}
+
+.page--agent .agent-loop-arrow {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+/* the chip for the newest entry's phase lights up (cobalt/amber/mint) */
+.page--agent .agent-loop-step[data-phase='think'][data-on='true'] {
+  color: var(--accent-glow);
+  border-color: var(--accent-glow);
+  background: rgba(52, 82, 255, 0.14);
+  box-shadow: 0 0 16px rgba(110, 133, 255, 0.3);
+}
+
+.page--agent .agent-loop-step[data-phase='act'][data-on='true'] {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.12);
+  box-shadow: 0 0 16px rgba(255, 176, 32, 0.26);
+}
+
+.page--agent .agent-loop-step[data-phase='observe'][data-on='true'] {
+  color: var(--mint);
+  border-color: var(--mint);
+  background: rgba(34, 196, 142, 0.12);
+  box-shadow: 0 0 16px rgba(34, 196, 142, 0.26);
+}
+
+/* settled runs dim the three phases; the trailing chip tells the story */
+.page--agent .agent-loop[data-state='done'] .agent-loop-step,
+.page--agent .agent-loop[data-state='stopped'] .agent-loop-step {
+  opacity: 0.45;
+}
+
+.page--agent .agent-loop-repeat[data-state='done'] {
+  opacity: 1;
+  color: var(--mint);
+  border-color: var(--mint);
+  background: rgba(34, 196, 142, 0.14);
+  box-shadow: 0 0 16px rgba(34, 196, 142, 0.3);
+}
+
+/* ---------- body: goal card | timeline ---------- */
+.page--agent .agent-body {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  align-items: start;
+}
+
+.page--agent .agent-goal {
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--stage-2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+}
+
+.page--agent .agent-goal-head {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-glow);
+}
+
+.page--agent .agent-goal-text {
+  margin-top: var(--space-2);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--on-stage);
+}
+
+.page--agent .agent-run-head {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+/* the timeline — a fixed-height, scrollable inner region (state-
+   invariant stage height; scrollTop pinned to the bottom with an
+   immediate jump, the pretraining feed pattern) */
+.page--agent .agent-timeline {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+  height: 208px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(11, 16, 31, 0.55);
+  scrollbar-width: thin;
+  scrollbar-color: var(--stage-2) transparent;
+}
+
+.page--agent .agent-timeline::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page--agent .agent-timeline::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--stage-2);
+}
+
+.page--agent .agent-timeline::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* empty state, centred in the fixed-height region */
+.page--agent .agent-empty {
+  margin: auto;
+  padding: var(--space-4) var(--space-6);
+  border: 1px dashed rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--on-stage-soft);
+  text-align: center;
+}
+
+/* ---------- timeline entries ---------- */
+.page--agent .agent-entry {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+}
+
+.page--agent .agent-entry-tag {
+  flex-shrink: 0;
+  min-width: 4.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+.page--agent .agent-entry-text {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--on-stage);
+}
+
+/* Thought — cobalt */
+.page--agent .agent-entry--thought .agent-entry-tag {
+  color: var(--accent-glow);
+}
+
+/* Act — amber, mono tool call */
+.page--agent .agent-entry--act .agent-entry-tag {
+  color: var(--amber);
+}
+
+.page--agent .agent-entry--act .agent-entry-text {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--amber);
+}
+
+/* Observe — mint */
+.page--agent .agent-entry--observe .agent-entry-tag {
+  color: var(--mint);
+}
+
+/* failure — coral */
+.page--agent .agent-entry--failed {
+  border-color: rgba(255, 107, 94, 0.5);
+  background: rgba(255, 107, 94, 0.08);
+}
+
+.page--agent .agent-entry--failed .agent-entry-tag {
+  color: var(--coral);
+}
+
+.page--agent .agent-entry--failed .agent-entry-text {
+  color: var(--coral);
+}
+
+/* gave up — coral family, a friendly failure */
+.page--agent .agent-entry--gaveup {
+  border-color: rgba(255, 107, 94, 0.5);
+  background: rgba(255, 107, 94, 0.08);
+}
+
+.page--agent .agent-entry--gaveup .agent-entry-tag {
+  color: var(--coral);
+}
+
+.page--agent .agent-entry--gaveup .agent-entry-text {
+  font-weight: 600;
+  color: var(--coral);
+}
+
+/* done — mint */
+.page--agent .agent-entry--done {
+  border-color: rgba(34, 196, 142, 0.5);
+  background: rgba(34, 196, 142, 0.08);
+}
+
+.page--agent .agent-entry--done .agent-entry-tag {
+  color: var(--mint);
+}
+
+.page--agent .agent-entry--done .agent-entry-text {
+  font-weight: 600;
+  color: var(--mint);
+}
+
+/* ---------- stage bar ---------- */
+.page--agent .agent-stage .stage-bar {
+  margin-top: auto;
+}
+
+.page--agent .agent-switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page--agent .agent-switch-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--agent .agent-head {
+    flex-direction: column;
+  }
+
+  .page--agent .agent-body {
+    grid-template-columns: 1fr;
+  }
+}

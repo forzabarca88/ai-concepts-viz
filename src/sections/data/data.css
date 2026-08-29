@@ -1,0 +1,200 @@
+/* ============================================================
+   Data ("01 · Core ideas") — river of pages.
+   Every rule is scoped under .page--data.
+   ============================================================ */
+
+/* ---------- stage + side panel ---------- */
+.page--data .data-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.page--data .data-sub {
+  margin-top: var(--space-2);
+  max-width: 48ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--data .data-canvas-wrap {
+  position: relative;
+  height: 400px;
+  margin-top: var(--space-4);
+}
+
+/* The GL canvas and its 2D blit share the same box; the blit (a copy of
+   the last GL frame) is what stays visible — see viz.ts. */
+.page--data .data-canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.page--data .data-canvas-wrap .data-blit {
+  z-index: 1;
+}
+
+/* ---------- ring labels (DOM mirror of the 3D rings) ---------- */
+.page--data .data-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+}
+
+.page--data .data-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--on-stage-soft);
+  opacity: 0.5;
+  transition:
+    color var(--dur-med) var(--ease-out),
+    opacity var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-ring-dot {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.page--data .data-ring--passed {
+  opacity: 0.9;
+  color: var(--mint);
+}
+
+.page--data .data-ring--active {
+  opacity: 1;
+  color: var(--amber);
+}
+
+.page--data .data-status {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* ---------- side panel: counters + reading mix ---------- */
+.page--data .data-side {
+  padding: var(--space-6);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--data .data-side-title {
+  font-size: var(--text-h3);
+  margin-bottom: var(--space-4);
+}
+
+.page--data .data-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-6);
+}
+
+.page--data .data-counter {
+  opacity: 0.35;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-counter--active {
+  opacity: 1;
+}
+
+.page--data .data-counters .metric-value {
+  font-size: 1.625rem;
+}
+
+.page--data .data-mix {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(16, 20, 24, 0.08);
+}
+
+.page--data .data-mix-title {
+  font-size: var(--text-h3);
+}
+
+.page--data .data-mix-sub {
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.page--data .data-mix-row {
+  display: grid;
+  grid-template-columns: auto 5.5rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.page--data .data-mix-name {
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+
+.page--data .data-mix-row--off .data-mix-name {
+  color: var(--ink-faint);
+}
+
+.page--data .data-mix-track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+}
+
+.page--data .data-mix-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-mix-row.data-fill--books .data-mix-fill {
+  background: var(--amber);
+}
+
+.page--data .data-mix-row.data-fill--code .data-mix-fill {
+  background: var(--mint);
+}
+
+.page--data .data-mix-row.data-fill--web .data-mix-fill {
+  background: var(--accent-glow);
+}
+
+.page--data .data-mix-row.data-fill--chats .data-mix-fill {
+  background: var(--on-stage-soft);
+}
+
+.page--data .data-mix-pct {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--data .data-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page--data .data-canvas-wrap {
+    height: 320px;
+  }
+}
