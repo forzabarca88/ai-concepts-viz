@@ -25,7 +25,10 @@ body {
   font-size: var(--text-body);
   line-height: 1.65;
   color: var(--ink);
-  background: var(--paper);
+  background:
+    radial-gradient(1100px 700px at 75% -10%, rgba(110,133,255,.13), transparent 60%),
+    radial-gradient(900px 600px at 5% 25%, rgba(255,176,32,.06), transparent 55%),
+    var(--paper);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -99,7 +102,7 @@ h3 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--accent);
+  color: var(--accent-glow);
   margin-bottom: var(--space-3);
 }
 
@@ -130,7 +133,8 @@ h3 {
     background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+    transform var(--dur-fast) var(--ease-out),
+    filter var(--dur-fast) var(--ease-out);
 }
 
 .btn:active {
@@ -138,23 +142,24 @@ h3 {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: var(--surface);
+  background: linear-gradient(135deg, var(--accent), var(--accent-glow));
+  color: #070B14;
+  box-shadow: 0 0 24px rgba(110,133,255,.30);
 }
 
 .btn-primary:hover {
-  background: var(--accent-glow);
+  filter: brightness(1.1);
 }
 
 .btn-ghost {
   background: transparent;
-  border-color: var(--ink-faint);
-  color: var(--ink);
+  border-color: rgba(148,160,185,.35);
+  color: var(--ink-soft);
 }
 
 .btn-ghost:hover {
-  border-color: var(--ink-soft);
-  background: var(--surface);
+  border-color: var(--accent-glow);
+  color: var(--on-stage);
 }
 
 .btn-small {
@@ -182,7 +187,7 @@ h3 {
   padding: 0.375rem 0.75rem;
   border-radius: var(--radius-chip);
   background: var(--accent-soft);
-  color: var(--ink);
+  color: #C7D2FE;
 }
 
 /* the one contextual rule: chips read as stage-2 on the dark stage */
@@ -220,6 +225,7 @@ h3 {
 
 .toggle[aria-checked='true'] {
   background: var(--accent);
+  box-shadow: 0 0 16px rgba(110,133,255,.45);
 }
 
 .toggle[aria-checked='true']::after {
@@ -228,14 +234,43 @@ h3 {
 
 /* ---------- stage (dark viz card) ---------- */
 .stage {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 420px;
   padding: var(--space-6);
-  background: var(--stage);
+  background: linear-gradient(160deg, #0C1226 0%, #0A101F 45%, #0B1A2A 100%);
+  border: 1px solid rgba(110,133,255,.18);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-stage);
   color: var(--on-stage);
+}
+
+/* static aurora glow along the stage's top edge, behind its children */
+.stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(600px 300px at 50% 0%, rgba(110,133,255,.10), transparent 70%);
+}
+
+.stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shared utility for sections that sink a 3D canvas layer under the
+   stage UI: it fills the stage and sits at z-index 0 via !important,
+   which carves it out of the `.stage > *` rule above. */
+.stage-3d-layer {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0 !important;
+  pointer-events: none;
+  background: radial-gradient(640px 320px at 50% 42%, rgba(110,133,255,.14), transparent 70%), var(--stage);
 }
 
 .stage-bar {
@@ -275,11 +310,22 @@ h3 {
 }
 
 /* ---------- card ---------- */
-.card {
+.card,
+.explain-card {
   padding: var(--space-6);
   background: var(--surface);
+  border: 1px solid rgba(110,133,255,.14);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-soft);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.card:hover,
+.explain-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(110,133,255,.30);
 }
 
 /* ---------- explain grid ---------- */
@@ -288,13 +334,6 @@ h3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
   margin-top: var(--space-8);
-}
-
-.explain-card {
-  padding: var(--space-6);
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
 }
 
 .explain-glyph {
@@ -330,6 +369,8 @@ h3 {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  color: var(--on-stage);
+  text-shadow: 0 0 24px rgba(110,133,255,.25);
 }
 
 .metric-label {
@@ -358,7 +399,7 @@ h3 {
   font-family: var(--font-mono);
   font-size: var(--text-small);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-glow);
   transition: color var(--dur-fast) var(--ease-out);
 }
 

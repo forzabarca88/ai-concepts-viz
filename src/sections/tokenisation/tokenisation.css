@@ -302,6 +302,54 @@
   color: var(--ink-soft);
 }
 
+/* ---------- panel 4 · type your own sentence ---------- */
+.page--tokenisation .tok-typed-sub {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-typed-input {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(148, 160, 185, 0.25);
+  border-radius: var(--radius-md);
+  background: rgba(7, 11, 20, 0.55);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  caret-color: var(--accent-glow);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.page--tokenisation .tok-typed-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.page--tokenisation .tok-typed-input:focus-visible {
+  outline: none;
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 0 3px rgba(110, 133, 255, 0.18);
+}
+
+.page--tokenisation .tok-typed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.page--tokenisation .tok-typed-empty {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--coral);
+}
+
 /* ---------- responsive ---------- */
 @media (max-width: 48rem) {
   .page--tokenisation .tok-panels {

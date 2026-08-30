@@ -28,22 +28,39 @@ test.describe('home — the reference section', () => {
     await shot('home-initial.png');
   });
 
-  test('next-token demo: before, each pick, new sentence', async ({ page, shot }) => {
+  test('duel: pick the model’s top pick', async ({ page, shot }) => {
     await page.goto('/');
     await scrollToSelector(page, '.nt-stage');
-    await shot('home-nexttoken-before.png');
-
     await page.getByRole('button', { name: /it never ends/ }).click();
-    await shot('home-nexttoken-a.png');
+    await expect(page.locator('.nt-reveal')).toHaveText(
+      'You and the model agree: "it never ends".',
+    );
+    await shot('home-pick-match.png');
+  });
 
+  test('duel: pick a non-argmax candidate', async ({ page, shot }) => {
+    await page.goto('/');
+    await scrollToSelector(page, '.nt-stage');
     await page.getByRole('button', { name: /you can practice/ }).click();
-    await shot('home-nexttoken-b.png');
+    await expect(page.locator('.nt-reveal')).toHaveText(
+      'You said "you can practice". The model would say "it never ends" (38%). Both are possible — that is the game.',
+    );
+    await shot('home-pick-mismatch.png');
+  });
 
-    await page.getByRole('button', { name: /it's expensive/ }).click();
-    await shot('home-nexttoken-c.png');
-
-    await page.getByRole('button', { name: 'New sentence' }).click();
-    await shot('home-sentence-2.png');
+  test('duel: full walk [0, 1, 0] to the score card', async ({ page, shot }) => {
+    await page.goto('/');
+    await scrollToSelector(page, '.nt-stage');
+    await page.getByRole('button', { name: /it never ends/ }).click();
+    await page.getByRole('button', { name: 'Next sentence' }).click();
+    await page.getByRole('button', { name: /feel uncomfortable/ }).click();
+    await page.getByRole('button', { name: 'Next sentence' }).click();
+    await page.getByRole('button', { name: /^word/ }).click();
+    await page.getByRole('button', { name: 'See your score' }).click();
+    await expect(page.locator('.nt-result-line')).toHaveText(
+      'You matched the model 2 out of 3 times.',
+    );
+    await shot('home-score-2of3.png');
   });
 
   test('map card keyboard focus', async ({ page, shot }) => {

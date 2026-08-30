@@ -158,6 +158,143 @@ describe('grain slider', () => {
   });
 });
 
+describe('type your own sentence', () => {
+  const setTyped = (root: HTMLElement, value: string) => {
+    const input = root.querySelector<HTMLInputElement>('.tok-typed-input');
+    if (!input) throw new Error('typed input not found');
+    input.value = value;
+  };
+
+  const go = (root: HTMLElement) =>
+    within(root).getByRole('button', { name: 'Tokenise it' }).click();
+
+  it('initial state: reset is disabled and the empty note is hidden', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ASSERT
+    const resetBtn = within(root)
+      .getByRole('button', { name: 'Back to the example' }) as HTMLButtonElement;
+    expect(resetBtn.disabled).toBe(true);
+    expect(root.querySelector<HTMLElement>('.tok-typed-empty')?.hidden).toBe(true);
+    expect(
+      within(root).getByText('Watch your words become tokens — the same rules apply.'),
+    ).toBeTruthy();
+  });
+
+  it('a typed sentence replaces the stage: exactly 7 chips, example controls disabled', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT
+    setTyped(root, 'The cat sat on the moon!');
+    go(root);
+
+    // ASSERT — exactly 7 chips, in order, in the existing chip style
+    const chips = chipEls(root);
+    expect(chips.map((c) => c.textContent)).toEqual([
+      'The',
+      'cat',
+      'sat',
+      'on',
+      'the',
+      'moon',
+      '!',
+    ]);
+    expect(root.querySelector('.tok-grain-count')?.textContent).toBe('7 chips');
+    const slider = root.querySelector<HTMLInputElement>('.tok-grain-slider');
+    expect(slider?.disabled).toBe(true);
+    const emojiBtn = within(root)
+      .getByRole('button', { name: 'Add an emoji' }) as HTMLButtonElement;
+    expect(emojiBtn.disabled).toBe(true);
+    expect(
+      within(root).getByText('Grain view uses the example sentence.'),
+    ).toBeTruthy();
+    const resetBtn = within(root)
+      .getByRole('button', { name: 'Back to the example' }) as HTMLButtonElement;
+    expect(resetBtn.disabled).toBe(false);
+  });
+
+  it('typed chips inspect with their own badge and id: moon → id 200 word, ! → punctuation —', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+    setTyped(root, 'The cat sat on the moon!');
+    go(root);
+    const chips = chipEls(root);
+
+    // ACT + ASSERT — dictionary word
+    chips[5].click();
+    let insp = inspector(root);
+    expect(insp.text).toBe('moon');
+    expect(insp.id).toBe('id 200');
+    expect(insp.badge).toBe('word');
+
+    // ACT + ASSERT — punctuation
+    chips[6].click();
+    insp = inspector(root);
+    expect(insp.text).toBe('!');
+    expect(insp.id).toBe('—');
+    expect(insp.badge).toBe('punctuation');
+  });
+
+  it('an unfamiliar word fragments into 3-letter pieces', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT
+    setTyped(root, 'xylophone');
+    go(root);
+
+    // ASSERT — three fragmented chips, each badged "unfamiliar piece"
+    const chips = chipEls(root);
+    expect(chips.map((c) => c.textContent)).toEqual(['xyl', 'oph', 'one']);
+    chips.forEach((chip) => {
+      chip.click();
+      const insp = inspector(root);
+      expect(insp.badge).toBe('unfamiliar piece');
+    });
+  });
+
+  it('empty input shows the note and keeps the example chips', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT
+    setTyped(root, '   ');
+    go(root);
+
+    // ASSERT
+    expect(root.querySelector<HTMLElement>('.tok-typed-empty')?.hidden).toBe(false);
+    expect(within(root).getByText('Type something first.')).toBeTruthy();
+    expect(chipEls(root)).toHaveLength(6);
+  });
+
+  it('Back to the example restores the sentence and re-enables the grain slider', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+    setTyped(root, 'The cat sat on the moon!');
+    go(root);
+
+    // ACT
+    within(root).getByRole('button', { name: 'Back to the example' }).click();
+
+    // ASSERT — example chips back, slider enabled, note hidden, reset disabled
+    expect(chipEls(root)).toHaveLength(6);
+    const slider = root.querySelector<HTMLInputElement>('.tok-grain-slider');
+    expect(slider?.disabled).toBe(false);
+    expect(root.querySelector<HTMLElement>('.tok-typed-empty')?.hidden).toBe(true);
+    const resetBtn = within(root)
+      .getByRole('button', { name: 'Back to the example' }) as HTMLButtonElement;
+    expect(resetBtn.disabled).toBe(true);
+  });
+});
+
 describe('next-token mini', () => {
   it.each([
     ['mat', 'The cat sat on the mat', 0],

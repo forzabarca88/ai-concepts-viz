@@ -4,19 +4,19 @@
    ============================================================ */
 :root {
   /* palette */
-  --paper: #F4F5F7;  --surface: #FFFFFF;
-  --stage: #0B101F;  --stage-2: #131C33;
-  --ink: #101418;    --ink-soft: #46505E;  --ink-faint: #8A94A6;
-  --on-stage: #F2F5FA;  --on-stage-soft: #9FA8BC;
-  --accent: #3452FF;   --accent-soft: #E4E9FF;  --accent-glow: #6E85FF;
-  --amber: #FFB020;    --amber-ink: #8A5A00;    --amber-glow: #FFC966;
+  --paper: #070B14;  --surface: #0D1424;
+  --stage: #0A101F;  --stage-2: #16203A;
+  --ink: #EEF2FA;    --ink-soft: #A9B4C9;  --ink-faint: #64708A;
+  --on-stage: #F2F5FA;  --on-stage-soft: #94A0B9;
+  --accent: #6E85FF;   --accent-soft: rgba(110,133,255,.16);  --accent-glow: #9FB0FF;
+  --amber: #FFB020;    --amber-ink: #FFC966;    --amber-glow: #FFD48A;
   --coral: #FF6B5E;    --mint: #22C48E;
 
   /* type (self-hosted @fontsource, exact imports) */
   --font-display: 'Bricolage Grotesque Variable', 'Instrument Sans', sans-serif;
   --font-body: 'Instrument Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --text-hero: clamp(2.75rem, 5.5vw, 4.25rem);  /* lh 1.02, weight 750, ls -0.02em */
+  --text-hero: clamp(2.75rem, 6vw, 4.75rem);  /* lh 1.02, weight 750, ls -0.02em */
   --text-h2: 1.875rem;  --text-h3: 1.25rem;
   --text-body: 1.0625rem;  /* lh 1.65 */  --text-small: 0.875rem;
   --text-eyebrow: 0.75rem; /* mono, uppercase, tracking .14em */
@@ -27,8 +27,8 @@
   --space-6: 1.5rem; --space-8: 2.5rem; --space-12: 4rem; --space-16: 6rem;
   --container: 72rem; --gutter: 1.5rem;
   --radius-card: 1.5rem; --radius-md: .75rem; --radius-chip: .5rem; --radius-pill: 999px;
-  --shadow-soft: 0 1px 2px rgba(16,20,24,.06), 0 8px 24px rgba(16,20,24,.08);
-  --shadow-stage: 0 32px 80px rgba(11,16,31,.35);
+  --shadow-soft: 0 1px 2px rgba(0,0,0,.45), 0 8px 24px rgba(0,0,0,.35);
+  --shadow-stage: 0 32px 80px rgba(3,6,15,.65);
 
   /* motion */
   --ease-out: cubic-bezier(.22,1,.36,1);

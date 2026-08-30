@@ -1,5 +1,5 @@
 /* ============================================================
-   Data ("01 · Core ideas") — river of pages.
+   Data ("01 · Core ideas") — the user-run filter console.
    Every rule is scoped under .page--data.
    ============================================================ */
 
@@ -13,26 +13,131 @@
 
 .page--data .data-sub {
   margin-top: var(--space-2);
-  max-width: 48ch;
+  max-width: 52ch;
   font-size: var(--text-small);
   color: var(--on-stage-soft);
 }
 
+/* The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it. */
 .page--data .data-canvas-wrap {
-  position: relative;
   height: 400px;
   margin-top: var(--space-4);
 }
 
-/* The GL canvas and its 2D blit share the same box; the blit (a copy of
-   the last GL frame) is what stays visible — see viz.ts. */
-.page--data .data-canvas-wrap canvas {
-  position: absolute;
-  inset: 0;
+/* ---------- decision panel (state-invariant height) ---------- */
+/* min-height is fixed so the stage never resizes between the
+   question/options state and the verdict state. */
+.page--data .data-panel {
+  min-height: 224px;
+  margin-top: var(--space-4);
 }
 
-.page--data .data-canvas-wrap .data-blit {
-  z-index: 1;
+.page--data .data-question {
+  max-width: 56ch;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--on-stage);
+}
+
+.page--data .data-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.page--data .data-option {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  color: var(--on-stage);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.page--data .data-option:hover {
+  border-color: rgba(148, 160, 185, 0.4);
+}
+
+.page--data .data-option:active {
+  transform: translateY(1px);
+}
+
+.page--data .data-option-label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.page--data .data-option-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--on-stage-soft);
+}
+
+/* the re-selectable current choice (Back flow) */
+.page--data .data-option[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 24px rgba(255, 176, 32, 0.22);
+}
+
+.page--data .data-option[aria-pressed='true'] .data-option-label {
+  color: var(--amber-ink);
+}
+
+/* the verdict state */
+.page--data .data-verdict {
+  max-width: 56ch;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--on-stage);
+}
+
+.page--data .data-quality {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.page--data .data-quality-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--mint);
+  white-space: nowrap;
+}
+
+.page--data .data-quality-track {
+  display: block;
+  width: 12rem;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 160, 185, 0.18);
+}
+
+.page--data .data-quality-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--mint));
+  box-shadow: 0 0 16px rgba(34, 196, 142, 0.45);
+  transition: width var(--dur-med) var(--ease-out);
 }
 
 /* ---------- ring labels (DOM mirror of the 3D rings) ---------- */
@@ -82,6 +187,17 @@
   font-size: var(--text-small);
   line-height: 1.6;
   color: var(--on-stage);
+}
+
+/* the author `display` rules above (.data-options flex, .btn
+   inline-flex) outrank the UA stylesheet's [hidden] { display: none } —
+   re-assert hiding so state-swapped elements are truly gone */
+.page--data .data-question[hidden],
+.page--data .data-options[hidden],
+.page--data .data-verdict[hidden],
+.page--data .data-quality[hidden],
+.page--data .data-back[hidden] {
+  display: none;
 }
 
 /* ---------- side panel: counters + reading mix ---------- */

@@ -3,8 +3,10 @@
  * spec), so every control is jsdom-testable and screenshot-frozen:
  *
  *  - the stage shows "I love learning about AI!" as token chips built
- *    from a fixed token table (text + vocabulary id);
- *  - three panels below: token inspector, grain view, next-token mini;
+ *    from a fixed token table (text + vocabulary id); or the tokens of a
+ *    sentence the user types, via a deterministic demo tokenizer;
+ *  - four panels below: token inspector, grain view, next-token mini,
+ *    type-your-own-sentence;
  *  - every data list is fixed and hardcoded (deterministic-everything);
  *  - each mount() returns a cleanup that removes its subtree.
  */
@@ -37,6 +39,78 @@ const EMOJI: Tok[] = [
   { text: '🚀', id: 2207, word: 5, emoji: true },
   { text: '🚀', id: 4956, word: 5, emoji: true },
 ];
+
+/* ---------- deterministic demo tokenizer for typed sentences ---------- */
+
+/** A token produced from a user-typed sentence. `id` is null for
+    punctuation — the model's vocab id there is not defined by us, so
+    the inspector shows "—". */
+interface TypedTok {
+  text: string;
+  id: number | null;
+  badge: string;
+}
+
+/** Fixed demo vocabulary for typed words (case-insensitive lookup). */
+const TYPE_DICT: Record<string, number> = {
+  i: 52, love: 418, learning: 1159, about: 623, ai: 65211, the: 21,
+  a: 10, an: 16, is: 32, are: 38, was: 41, were: 47, am: 26, be: 24,
+  to: 12, of: 18, in: 14, on: 20, at: 28, it: 30, you: 56, me: 58,
+  my: 62, your: 66, we: 70, they: 74, he: 78, she: 82, this: 86,
+  that: 90, and: 94, or: 98, but: 104, not: 110, no: 116, yes: 122,
+  good: 128, bad: 134, big: 140, small: 146, run: 152, walk: 158,
+  jump: 164, happy: 170, sad: 176, cat: 182, dog: 188, sun: 194,
+  moon: 200, star: 206, hello: 212, world: 218, time: 224, day: 230,
+  night: 236, water: 242, fire: 248,
+};
+
+/** Word runs (maximal) or single non-word, non-whitespace characters. */
+const TOKEN_RE = /[A-Za-z0-9']+|[^A-Za-z0-9'\s]/g;
+const WORD_RE = /^[A-Za-z0-9']+$/;
+
+/** djb2 — a pure function of the input (no time/randomness/network). */
+function djb2(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) | 0;
+  return (h >>> 0) % 100000;
+}
+
+/** 3-letter chunks: while length > 3 take 3; the remainder (1–3 letters)
+    is the final chunk. `xylophone → xyl, oph, one`; `abcd → abc, d`. */
+function chunkWord(word: string): string[] {
+  const out: string[] = [];
+  let rest = word;
+  while (rest.length > 3) {
+    out.push(rest.slice(0, 3));
+    rest = rest.slice(3);
+  }
+  if (rest.length > 0) out.push(rest);
+  return out;
+}
+
+/** Tokenise a typed sentence. Pure function of the input: dictionary
+    words stay whole, unfamiliar words fragment into 3-letter pieces
+    (ids hashed with djb2), each punctuation/symbol char is its own
+    token, whitespace is ignored. */
+function tokeniseSentence(input: string): TypedTok[] {
+  const out: TypedTok[] = [];
+  const matches = input.trim().match(TOKEN_RE) ?? [];
+  for (const m of matches) {
+    if (WORD_RE.test(m)) {
+      const id = TYPE_DICT[m.toLowerCase()];
+      if (id !== undefined) {
+        out.push({ text: m, id, badge: 'word' });
+      } else {
+        for (const chunk of chunkWord(m)) {
+          out.push({ text: chunk, id: djb2(chunk) % 100000, badge: 'unfamiliar piece' });
+        }
+      }
+    } else {
+      out.push({ text: m, id: null, badge: 'punctuation' });
+    }
+  }
+  return out;
+}
 
 const GRAIN_LABELS = ['Character', 'Subword', 'Word'] as const;
 
@@ -108,13 +182,17 @@ function chipsFor(grain: number, withEmoji: boolean): Tok[] {
 }
 
 /* ============================================================
-   Stage (token chips) + the three panels below it.
+   Stage (token chips) + the four panels below it.
    One mount because the chips, inspector and grain share state.
    ============================================================ */
+
+const GRAIN_SUB_EXAMPLE = 'Same sentence, three ways to chunk it.';
+const GRAIN_SUB_TYPED = 'Grain view uses the example sentence.';
 
 export function mountTokenViz(root: HTMLElement): () => void {
   let grain = 1; // subword by default
   let withEmoji = false;
+  let typed: TypedTok[] | null = null; // null → the example sentence is active
 
   /* ---------- stage ---------- */
 
@@ -183,7 +261,7 @@ export function mountTokenViz(root: HTMLElement): () => void {
   grainTitle.textContent = 'Change the grain';
   const grainSub = document.createElement('p');
   grainSub.className = 'tok-grain-sub';
-  grainSub.textContent = 'Same sentence, three ways to chunk it.';
+  grainSub.textContent = GRAIN_SUB_EXAMPLE;
   const slider = document.createElement('input');
   slider.type = 'range';
   slider.className = 'tok-grain-slider';
@@ -268,6 +346,39 @@ export function mountTokenViz(root: HTMLElement): () => void {
   }
   nextCard.append(nextTitle, sentence, cands, explain);
 
+  /* ---------- panel 4 · type your own sentence ---------- */
+
+  const typedCard = document.createElement('article');
+  typedCard.className = 'card tok-typed';
+  const typedTitle = document.createElement('h3');
+  typedTitle.className = 'tok-panel-title';
+  typedTitle.textContent = 'Type your own sentence';
+  const typedSub = document.createElement('p');
+  typedSub.className = 'tok-typed-sub';
+  typedSub.textContent = 'Watch your words become tokens — the same rules apply.';
+  const typedInput = document.createElement('input');
+  typedInput.type = 'text';
+  typedInput.className = 'tok-typed-input';
+  typedInput.setAttribute('aria-label', 'Your sentence');
+  typedInput.placeholder = 'Type a sentence…';
+  const typedActions = document.createElement('div');
+  typedActions.className = 'tok-typed-actions';
+  const goBtn = document.createElement('button');
+  goBtn.type = 'button';
+  goBtn.className = 'btn btn-primary tok-typed-go';
+  goBtn.textContent = 'Tokenise it';
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'btn btn-ghost tok-typed-reset';
+  resetBtn.textContent = 'Back to the example';
+  resetBtn.disabled = true;
+  typedActions.append(goBtn, resetBtn);
+  const emptyNote = document.createElement('p');
+  emptyNote.className = 'tok-typed-empty';
+  emptyNote.hidden = true;
+  emptyNote.textContent = 'Type something first.';
+  typedCard.append(typedTitle, typedSub, typedInput, typedActions, emptyNote);
+
   /* ---------- behaviour ---------- */
 
   const clearSelection = () => {
@@ -278,9 +389,20 @@ export function mountTokenViz(root: HTMLElement): () => void {
     inspBox.hidden = true;
   };
 
+  /** Disable the example-only controls (grain slider, emoji) while a
+      typed sentence is on stage, and re-enable them on the way back. */
+  const syncControls = () => {
+    const active = typed !== null;
+    slider.disabled = active;
+    emojiBtn.disabled = active || withEmoji;
+    grainSub.textContent = active ? GRAIN_SUB_TYPED : GRAIN_SUB_EXAMPLE;
+    resetBtn.disabled = !active;
+  };
+
   const renderChips = () => {
     chipsEl.innerHTML = '';
-    for (const tok of chipsFor(grain, withEmoji)) {
+    const tokens: ReadonlyArray<Tok | TypedTok> = typed ?? chipsFor(grain, withEmoji);
+    for (const tok of tokens) {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'tok-chip';
@@ -298,8 +420,12 @@ export function mountTokenViz(root: HTMLElement): () => void {
         inspEmpty.hidden = true;
         inspBox.hidden = false;
         inspText.textContent = t.text;
-        inspId.textContent = `id ${t.id}`;
-        inspBadge.textContent = t.emoji ? 'piece of an emoji' : 'piece of a word';
+        inspId.textContent = t.id === null ? '—' : `id ${t.id}`;
+        inspBadge.textContent = 'badge' in t
+          ? t.badge
+          : t.emoji
+            ? 'piece of an emoji'
+            : 'piece of a word';
       });
       chipsEl.appendChild(chip);
     }
@@ -328,6 +454,29 @@ export function mountTokenViz(root: HTMLElement): () => void {
     setGrain(grain); // regroup with the rocket in place
   });
 
+  goBtn.addEventListener('click', () => {
+    const text = typedInput.value.trim();
+    if (text === '') {
+      emptyNote.hidden = false;
+      return;
+    }
+    emptyNote.hidden = true;
+    typed = tokeniseSentence(text);
+    syncControls();
+    renderChips();
+    clearSelection();
+    updateGrainPanel();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    typed = null;
+    emptyNote.hidden = true;
+    syncControls();
+    renderChips();
+    clearSelection();
+    updateGrainPanel();
+  });
+
   /* ---------- initial paint ---------- */
 
   sentence.append(document.createTextNode('The cat sat on the '), blank);
@@ -336,7 +485,7 @@ export function mountTokenViz(root: HTMLElement): () => void {
 
   const panels = document.createElement('div');
   panels.className = 'tok-panels';
-  panels.append(inspCard, grainCard, nextCard);
+  panels.append(inspCard, grainCard, nextCard, typedCard);
 
   root.append(stage, panels);
   return () => {

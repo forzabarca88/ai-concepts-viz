@@ -126,11 +126,85 @@
   opacity: 0.45;
 }
 
-.page--home .nt-explain {
+/* fixed height for the variable body (candidates + reveal ↔ result
+   card) so the stage never changes size between duel states */
+.page--home .nt-body {
+  min-height: 322px;
+}
+
+/* the author `display` rules above (.nt-cands flex, .btn inline-flex)
+   outrank the UA stylesheet's [hidden] { display: none } — re-assert
+   hiding so phase-swapped elements are truly gone */
+.page--home .nt-cands[hidden],
+.page--home .nt-reveal[hidden],
+.page--home .nt-result[hidden],
+.page--home .nt-next[hidden],
+.page--home .nt-again[hidden] {
+  display: none;
+}
+
+/* candidates lock once a pick is made */
+.page--home .nt-cand:disabled {
+  cursor: default;
+}
+
+/* the reveal line — the duel's one-sentence verdict (aria-live) */
+.page--home .nt-reveal {
   margin-top: var(--space-6);
   max-width: 62ch;
   padding-left: var(--space-4);
-  border-left: 2px solid var(--amber);
+  border-left: 2px solid var(--on-stage-soft);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage-soft);
+}
+
+.page--home .nt-reveal:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.page--home .nt-reveal--agree {
+  border-left-color: var(--mint);
+}
+
+.page--home .nt-reveal--mismatch {
+  border-left-color: var(--coral);
+}
+
+/* the score pill — always visible, mono */
+.page--home .nt-score {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid rgba(110, 133, 255, 0.18);
+  border-radius: var(--radius-pill);
+  background: var(--stage-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--on-stage-soft);
+  white-space: nowrap;
+}
+
+/* the score-phase result card */
+.page--home .nt-result {
+  margin-top: var(--space-6);
+  max-width: 62ch;
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid rgba(110, 133, 255, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(22, 32, 58, 0.55);
+  box-shadow: 0 0 32px rgba(110, 133, 255, 0.08);
+}
+
+.page--home .nt-result-line {
+  font-size: var(--text-body);
+  font-weight: 650;
+  color: var(--on-stage);
+}
+
+.page--home .nt-result-summary {
+  margin-top: var(--space-2);
   font-size: var(--text-small);
   line-height: 1.6;
   color: var(--on-stage-soft);

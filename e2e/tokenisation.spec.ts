@@ -27,31 +27,22 @@ test.describe('tokenisation — words into tokens', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: "Words aren't words — they're tokens" }),
     ).toBeVisible();
-    await shot('tok-initial.png');
+    await shot('tokenisation-initial.png');
   });
 
   test('clicking a chip opens the inspector', async ({ page, shot }) => {
     await page.goto('/#/tokenisation');
     await scrollToSelector(page, '.tok-stage');
 
-    // the " AI" chip — the one with the rarest id
-    await page.locator('.tok-chip').nth(4).click();
+    // the " love" chip
+    await page.locator('.tok-chip').nth(1).click();
     await expect(page.locator('.tok-insp')).toBeVisible();
+    await expect(page.locator('.tok-insp-id')).toHaveText('id 418');
     await scrollToSelector(page, '.tok-stage');
-    await shot('tok-chip-selected.png');
+    await shot('tokenisation-chip.png');
   });
 
-  test('adding an emoji splits the rocket into three tokens', async ({ page, shot }) => {
-    await page.goto('/#/tokenisation');
-    await scrollToSelector(page, '.tok-stage');
-
-    await page.getByRole('button', { name: 'Add an emoji' }).click();
-    await expect(page.getByText('Even robots can break!')).toBeVisible();
-    await scrollToSelector(page, '.tok-stage');
-    await shot('tok-emoji.png');
-  });
-
-  test('grain: character, subword, word', async ({ page, shot }) => {
+  test('grain: character and word', async ({ page, shot }) => {
     await page.goto('/#/tokenisation');
     await scrollToSelector(page, '.tok-stage');
 
@@ -61,30 +52,41 @@ test.describe('tokenisation — words into tokens', () => {
     await page.keyboard.press('ArrowLeft');
     await expect(slider).toHaveValue('0');
     await scrollToSelector(page, '.tok-stage');
-    await shot('tok-grain-char.png');
-    // → subword
+    await shot('tokenisation-grain-0.png');
+    // → subword → word
     await page.keyboard.press('ArrowRight');
-    await expect(slider).toHaveValue('1');
-    await scrollToSelector(page, '.tok-stage');
-    await shot('tok-grain-subword.png');
-    // → word
     await page.keyboard.press('ArrowRight');
     await expect(slider).toHaveValue('2');
     await scrollToSelector(page, '.tok-stage');
-    await shot('tok-grain-word.png');
+    await shot('tokenisation-grain-2.png');
   });
 
-  test('next-token mini: mat, then moon', async ({ page, shot }) => {
+  test('adding an emoji splits the rocket into three tokens', async ({ page, shot }) => {
     await page.goto('/#/tokenisation');
-    await scrollToSelector(page, '.tok-next');
+    await scrollToSelector(page, '.tok-stage');
 
-    await page.getByRole('button', { name: /mat/ }).click();
-    await expect(page.locator('.tok-next-explain')).toBeVisible();
-    await scrollToSelector(page, '.tok-next');
-    await shot('tok-next-mat.png');
+    await page.getByRole('button', { name: 'Add an emoji' }).click();
+    await expect(page.getByText('Even robots can break!')).toBeVisible();
+    await scrollToSelector(page, '.tok-stage');
+    await shot('tokenisation-emoji.png');
+  });
 
-    await page.getByRole('button', { name: /moon/ }).click();
-    await scrollToSelector(page, '.tok-next');
-    await shot('tok-next-moon.png');
+  test('type your own sentence: the same rules apply', async ({ page, shot }) => {
+    await page.goto('/#/tokenisation');
+    await scrollToSelector(page, '.tok-typed');
+
+    // A sentence of known words plus one punctuation mark: 7 tokens.
+    await page.locator('.tok-typed-input').fill('The cat sat on the moon!');
+    await page.getByRole('button', { name: 'Tokenise it' }).click();
+    await expect(page.locator('.tok-chip')).toHaveCount(7);
+    await scrollToSelector(page, '.tok-stage');
+    await shot('tokenisation-typed.png');
+
+    // An unfamiliar word fragments into 3-letter pieces.
+    await page.locator('.tok-typed-input').fill('xylophone');
+    await page.getByRole('button', { name: 'Tokenise it' }).click();
+    await expect(page.locator('.tok-chip')).toHaveCount(3);
+    await scrollToSelector(page, '.tok-stage');
+    await shot('tokenisation-typed-unfamiliar.png');
   });
 });

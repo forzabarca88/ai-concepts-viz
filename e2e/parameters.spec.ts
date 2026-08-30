@@ -21,34 +21,75 @@ async function scrollToSelector(page: Page, selector: string) {
   }, selector);
 }
 
-test.describe('parameters — knob cloud (3D)', () => {
+test.describe('parameters — pick what it learns (knob cloud, 3D)', () => {
   test('initial state', async ({ page, shot }) => {
     await page.goto('/#/parameters');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Billions of tiny knobs' }),
     ).toBeVisible();
+    await expect(page.locator('.par-status')).toHaveText(
+      'Step 0 of 10 — every knob is still at its factory setting.',
+    );
+    await scrollToSelector(page, '.par-stage');
     await shot('par-initial.png');
   });
 
-  test('training: step 1, then step 5', async ({ page, shot }) => {
+  test('topic + training: milestones 3, 6, then done with the answer revealed', async ({
+    page,
+    shot,
+  }) => {
     await page.goto('/#/parameters');
     await page.evaluate(() => document.fonts.ready);
-    await scrollToSelector(page, '.par-stage');
+    await scrollToSelector(page, '.par-side');
+
+    // Pick the Poetry course (the default) — the side panel is the focus.
+    await page.getByRole('button', { name: 'Poetry' }).click();
+    await scrollToSelector(page, '.par-side');
+    await shot('par-topic-poetry.png');
 
     const train = page.getByRole('button', { name: 'Train one step' });
-    await train.click();
-    await scrollToSelector(page, '.par-stage');
-    await shot('par-step-1.png');
 
-    for (let i = 0; i < 4; i++) {
-      await train.click();
-    }
-    await expect(page.locator('.par-meter-count')).toHaveText('5 of 10 steps');
+    // Three steps → the poetry milestone-3 caption.
+    for (let i = 0; i < 3; i += 1) await train.click();
+    await expect(page.locator('.par-status')).toHaveText(
+      'It can rhyme "rose" with "goes" — barely.',
+    );
     await scrollToSelector(page, '.par-stage');
-    await shot('par-step-5.png');
+    await shot('par-step-3.png');
+
+    // Three more → milestone-6.
+    for (let i = 0; i < 3; i += 1) await train.click();
+    await expect(page.locator('.par-status')).toHaveText(
+      'It writes passable haiku with a suspicious amount of "moon".',
+    );
+    await scrollToSelector(page, '.par-stage');
+    await shot('par-step-6.png');
+
+    // Four more → done: the test card unlocks and the answer is revealed.
+    for (let i = 0; i < 4; i += 1) await train.click();
+    await expect(page.locator('.par-test-prompt')).toHaveText('Write a haiku about coffee');
+    await page.getByRole('button', { name: 'Reveal answer' }).click();
+    await expect(page.locator('.par-test-answer')).toHaveText(
+      'Steam curls, then stills — / the cup holds the morning sun / one sip, and the day starts',
+    );
+    await expect(page.getByRole('button', { name: 'Reveal answer' })).toBeDisabled();
+    await scrollToSelector(page, '.par-stage');
+    await shot('par-done.png');
   });
 
-  test('model size: 1M, 7B, 70B', async ({ page, shot }) => {
+  test('knob card: selecting the "moon"-in-poems knob spotlights it', async ({ page, shot }) => {
+    await page.goto('/#/parameters');
+    await page.evaluate(() => document.fonts.ready);
+    await scrollToSelector(page, '.par-side');
+
+    await page.locator('.par-knob-card').nth(1).click();
+    await expect(page.locator('.par-tip')).toBeVisible();
+    await expect(page.locator('.par-tip')).toHaveText('Knob #612,084 · value 0.87');
+    await scrollToSelector(page, '.par-stage');
+    await shot('par-knob-inspect.png');
+  });
+
+  test('model size: 70B', async ({ page, shot }) => {
     await page.goto('/#/parameters');
     await page.evaluate(() => document.fonts.ready);
     await scrollToSelector(page, '.par-side');
@@ -58,31 +99,11 @@ test.describe('parameters — knob cloud (3D)', () => {
     // re-applied after every keypress before capturing.
     await slider.focus();
 
-    await page.keyboard.press('ArrowLeft');
-    await expect(slider).toHaveValue('0');
-    await scrollToSelector(page, '.par-side');
-    await shot('par-size-1m.png');
-
     await page.keyboard.press('ArrowRight');
-    await expect(slider).toHaveValue('1');
-    await scrollToSelector(page, '.par-side');
-    await shot('par-size-7b.png');
-
     await page.keyboard.press('ArrowRight');
     await expect(slider).toHaveValue('2');
+    await expect(page.locator('.par-tick--active')).toHaveText('70B');
     await scrollToSelector(page, '.par-side');
     await shot('par-size-70b.png');
-  });
-
-  test('inspecting a knob shows the spotlight card', async ({ page, shot }) => {
-    await page.goto('/#/parameters');
-    await page.evaluate(() => document.fonts.ready);
-    await scrollToSelector(page, '.par-stage');
-
-    await page.getByRole('button', { name: 'Inspect a knob' }).click();
-    await expect(page.locator('.par-tip')).toBeVisible();
-    await expect(page.locator('.par-tip')).toHaveText('Knob #4,291,114 · value 0.42');
-    await scrollToSelector(page, '.par-stage');
-    await shot('par-inspected.png');
   });
 });

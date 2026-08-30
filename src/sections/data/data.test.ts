@@ -14,7 +14,14 @@ const mount = () => {
   return mounted;
 };
 
-const fmt = new Intl.NumberFormat('en-US');
+const fmt = (n: number): string => new Intl.NumberFormat('en-US').format(n);
+
+/** Counter values in chain order, e.g. `['10,000,000', '—', '—', '—']`. */
+function counterValues(root: HTMLElement): string[] {
+  return [...root.querySelectorAll('.data-counter .metric-value')].map(
+    (el) => el.textContent!.trim(),
+  );
+}
 
 /** "Name pct" pair per mix row, e.g. `Books 30%`. */
 function mixRows(root: HTMLElement): string[] {
@@ -53,73 +60,166 @@ describe('data hero + template', () => {
   });
 });
 
-describe('pipeline steps', () => {
-  it('shows the full counter sequence, formatted with Intl.NumberFormat', () => {
+describe('the filter console', () => {
+  it('starts on stage 1 with its question, three options and the counter chain', () => {
     // ARRANGE + ACT
     const m = mount();
+    const root = m.root;
 
-    // ASSERT — the fixed sequence 10,000,000 → 4,200,000 → 1,100,000 → 8,800,000
-    const values = [...m.root.querySelectorAll('.data-counter .metric-value')].map(
-      (el) => el.textContent!.trim(),
-    );
-    expect(values).toEqual([
-      fmt.format(10_000_000),
-      fmt.format(4_200_000),
-      fmt.format(1_100_000),
-      fmt.format(8_800_000),
+    // ASSERT — stage-1 question + its three options
+    expect(within(root).getByText('Ten million pages arrived. Which sources does the model get to read?')).toBeTruthy();
+    for (const label of ['Keep it broad', 'Best sources only', 'Books & scholarly articles']) {
+      const btn = within(root).getByRole('button', { name: new RegExp(`^${label}`) });
+      expect(btn.classList.contains('data-option')).toBe(true);
+      expect(btn.getAttribute('aria-pressed')).toBe('false');
+    }
+    // ASSERT — raw intake shown, the other three counters still `—`
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      '—',
+      '—',
+      '—',
     ]);
-    // initially only the raw-intake counter is active
-    const active = m.root.querySelectorAll('.data-counter--active');
-    expect(active).toHaveLength(1);
-    expect(active[0].textContent).toContain('10,000,000');
-    expect(m.root.querySelector('.data-ring--active')).toBeNull();
-    expect(m.root.querySelector('.data-status')?.textContent).toContain('Raw intake');
+    expect(within(root).getByText('tokens ready')).toBeTruthy();
+    // ASSERT — the verdict is not shown yet, Back is hidden
+    expect(root.querySelector<HTMLElement>('.data-verdict')?.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>('.data-back')?.hidden).toBe(true);
   });
 
-  it('Next filter walks the four gated steps, updating counter + active ring, then disables', () => {
+  it('picking "Best sources only" fills counter 2 and advances to stage 2', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
-    const next = within(root).getByRole('button', { name: 'Next filter' }) as HTMLButtonElement;
-    const expected: Array<{ ring: string; counter: string }> = [
-      { ring: 'Curation', counter: '4,200,000' },
-      { ring: 'Cleaning', counter: '1,100,000' },
-      { ring: 'Deduplication', counter: '8,800,000' },
-    ];
 
-    // ACT + ASSERT — one press per filter; after the fourth state the
-    // button is disabled
-    for (const { ring, counter } of expected) {
-      next.click();
-      expect(root.querySelector('.data-status')?.textContent).toContain(ring);
-      const activeRing = root.querySelector('.data-ring--active');
-      expect(activeRing?.textContent).toContain(ring);
-      const activeCounters = root.querySelectorAll('.data-counter--active');
-      expect(activeCounters).toHaveLength(1);
-      expect(activeCounters[0].textContent).toContain(counter);
-    }
-    expect(next.disabled).toBe(true);
+    // ACT
+    within(root).getByRole('button', { name: /^Best sources only/ }).click();
+
+    // ASSERT — 4,200,000 clean pages, stage-2 question, Back now visible
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      fmt(4_200_000),
+      '—',
+      '—',
+    ]);
+    expect(within(root).getByText('The pages are in. How hard do we scrub the junk out of them?')).toBeTruthy();
+    expect(root.querySelector<HTMLElement>('.data-back')?.hidden).toBe(false);
   });
 
-  it('"Start over" resets to the raw intake and re-enables Next filter', () => {
-    // ARRANGE — advance two steps
+  it('full run [1,1,1] → 1,039,500 unique pages, 8,316,000 tokens, quality 60%', () => {
+    // ARRANGE
     const m = mount();
     const root = m.root;
-    const next = within(root).getByRole('button', { name: 'Next filter' }) as HTMLButtonElement;
-    next.click();
-    next.click();
-    expect(root.querySelector('.data-ring--active')?.textContent).toContain('Cleaning');
+
+    // ACT — Best sources only / Standard scrub / Standard dedup
+    within(root).getByRole('button', { name: /^Best sources only/ }).click();
+    within(root).getByRole('button', { name: /^Standard scrub/ }).click();
+    within(root).getByRole('button', { name: /^Standard dedup/ }).click();
+
+    // ASSERT — final counters (unique pages = the dedup result)
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      fmt(4_200_000),
+      fmt(1_039_500),
+      fmt(8_316_000),
+    ]);
+    // ASSERT — quality meter + verdict line 3
+    const quality = root.querySelector('.data-quality')!;
+    expect(quality.getAttribute('role')).toBe('progressbar');
+    expect(quality.getAttribute('aria-valuenow')).toBe('60');
+    expect(within(root).getByText('Data quality 60%')).toBeTruthy();
+    expect(within(root).getByText('Careful data — you would be proud of the reading list.')).toBeTruthy();
+    // ASSERT — all three rings have passed
+    expect(root.querySelectorAll('.data-ring--passed')).toHaveLength(3);
+    expect(root.querySelector('.data-ring--active')).toBeNull();
+  });
+
+  it('full run [2,2,2] → 240,000 unique pages, 1,920,000 tokens, quality 90%', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT — Books & scholarly articles / Surgical / Aggressive dedup
+    within(root).getByRole('button', { name: /^Books & scholarly articles/ }).click();
+    within(root).getByRole('button', { name: /^Surgical/ }).click();
+    within(root).getByRole('button', { name: /^Aggressive dedup/ }).click();
+
+    // ASSERT — 240,000 unique pages (the dedup result), 1,920,000 tokens
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      fmt(2_000_000),
+      fmt(240_000),
+      fmt(1_920_000),
+    ]);
+    expect(root.querySelector('.data-quality')?.getAttribute('aria-valuenow')).toBe('90');
+    expect(within(root).getByText('Data quality 90%')).toBeTruthy();
+    expect(
+      within(root).getByText(
+        'The rarest recipe of all: a tiny, perfect diet. Quality over quantity.',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('Back returns to a stage with its choice pre-pressed; changing it recomputes downstream', () => {
+    // ARRANGE — complete the run with option 2 on every stage
+    const m = mount();
+    const root = m.root;
+    within(root).getByRole('button', { name: /^Books & scholarly articles/ }).click();
+    within(root).getByRole('button', { name: /^Surgical/ }).click();
+    within(root).getByRole('button', { name: /^Aggressive dedup/ }).click();
+    expect(counterValues(root)[1]).toBe(fmt(2_000_000));
+
+    // ACT — back through dedup, cleaning, to stage 1 (each pre-pressed)
+    within(root).getByRole('button', { name: '← Back' }).click();
+    expect(within(root).getByRole('button', { name: /^Aggressive dedup/ })
+      .getAttribute('aria-pressed')).toBe('true');
+    within(root).getByRole('button', { name: '← Back' }).click();
+    expect(within(root).getByRole('button', { name: /^Surgical/ })
+      .getAttribute('aria-pressed')).toBe('true');
+    within(root).getByRole('button', { name: '← Back' }).click();
+    expect(within(root).getByRole('button', { name: /^Books & scholarly articles/ })
+      .getAttribute('aria-pressed')).toBe('true');
+
+    // ACT — switch stage 1 to option 0 ("Keep it broad")
+    within(root).getByRole('button', { name: /^Keep it broad/ }).click();
+
+    // ASSERT — stage-1 result recomputed and everything downstream
+    // recomputes live (later choices intact): 8,500,000 × 0.4 × 0.3
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      fmt(8_500_000),
+      fmt(1_020_000),
+      fmt(8_160_000),
+    ]);
+    // finish the run again: re-select Surgical + Aggressive dedup
+    within(root).getByRole('button', { name: /^Surgical/ }).click();
+    within(root).getByRole('button', { name: /^Aggressive dedup/ }).click();
+    expect(counterValues(root)).toEqual([
+      fmt(10_000_000),
+      fmt(8_500_000),
+      fmt(1_020_000),
+      fmt(8_160_000),
+    ]);
+    expect(within(root).getByText('Data quality 70%')).toBeTruthy();
+  });
+
+  it('"Start over" resets to the raw intake', () => {
+    // ARRANGE — advance two stages
+    const m = mount();
+    const root = m.root;
+    within(root).getByRole('button', { name: /^Best sources only/ }).click();
+    within(root).getByRole('button', { name: /^Standard scrub/ }).click();
+    expect(counterValues(root)).toEqual([fmt(10_000_000), fmt(4_200_000), '—', '—']);
 
     // ACT
     within(root).getByRole('button', { name: 'Start over' }).click();
 
-    // ASSERT
-    expect(next.disabled).toBe(false);
-    const active = root.querySelector('.data-counter--active');
-    expect(active?.textContent).toContain('10,000,000');
-    expect(root.querySelector('.data-ring--active')).toBeNull();
-    expect(root.querySelector('.data-ring--passed')).toBeNull();
-    expect(root.querySelector('.data-status')?.textContent).toContain('Raw intake');
+    // ASSERT — everything back to the initial state
+    expect(counterValues(root)).toEqual([fmt(10_000_000), '—', '—', '—']);
+    expect(within(root).getByText('Ten million pages arrived. Which sources does the model get to read?')).toBeTruthy();
+    expect(root.querySelector<HTMLElement>('.data-back')?.hidden).toBe(true);
+    expect(root.querySelector('.data-ring--active')?.textContent).toContain('Curation');
+    expect(root.querySelectorAll('.data-ring--passed')).toHaveLength(0);
+    expect(root.querySelector<HTMLElement>('.data-verdict')?.hidden).toBe(true);
   });
 });
 
@@ -196,17 +296,16 @@ describe('topic mix', () => {
       'Web pages 0%',
       'Chats 0%',
     ]);
-    root.querySelectorAll<HTMLElement>('.data-mix-fill').forEach((f) => expect(f.style.width).toBe('0%'));
+    root
+      .querySelectorAll<HTMLElement>('.data-mix-fill')
+      .forEach((f) => expect(f.style.width).toBe('0%'));
   });
 });
 
 describe('window listener hygiene', () => {
   it('removes its window resize listener on unmount (no leak on the no-WebGL path)', () => {
-    // ARRANGE — spy on registration instead of dispatching events. In
-    // jsdom every data-page mount takes the no-WebGL fallback path, which
-    // used to leak its resize listener on unmount. The 3D helper adds no
-    // resize listener on that path, so only the section's own
-    // registration/removal is counted.
+    // ARRANGE — the kit registers exactly one window resize listener per
+    // mount (removed again on dispose); the section adds none of its own.
     const addSpy = vi.spyOn(window, 'addEventListener');
     const removeSpy = vi.spyOn(window, 'removeEventListener');
 

@@ -215,21 +215,32 @@ function pagerItem(route: string): { number: string; title: string } {
  * 12 hardcoded ambient chips — fixed positions, 60–120s linear loops,
  * negative delays for organic spread. Paused at t=0 by the `.pw`
  * protocol, so screenshots always capture the base positions.
+ *
+ * Two chips carry a constellation accent (`token-chip--amber` / `--mint`).
  */
-const TOKEN_CHIPS = [
+interface TokenChip {
+  text: string;
+  left: string;
+  top: string;
+  dur: string;
+  delay: string;
+  variant?: 'amber' | 'mint';
+}
+
+const TOKEN_CHIPS: readonly TokenChip[] = [
   { text: 'the', left: '6%', top: '18%', dur: '84s', delay: '-12s' },
-  { text: 'tok_2941', left: '22%', top: '64%', dur: '66s', delay: '-30s' },
+  { text: 'tok_2941', left: '22%', top: '64%', dur: '66s', delay: '-30s', variant: 'amber' },
   { text: '…', left: '38%', top: '30%', dur: '120s', delay: '-5s' },
   { text: 'a', left: '52%', top: '78%', dur: '78s', delay: '-44s' },
   { text: 'model', left: '64%', top: '14%', dur: '96s', delay: '-21s' },
   { text: '…', left: '78%', top: '58%', dur: '60s', delay: '-9s' },
   { text: 'next', left: '12%', top: '86%', dur: '108s', delay: '-52s' },
   { text: 'tok_0007', left: '30%', top: '8%', dur: '88s', delay: '-37s' },
-  { text: '…', left: '46%', top: '52%', dur: '72s', delay: '-15s' },
+  { text: '…', left: '46%', top: '52%', dur: '72s', delay: '-15s', variant: 'mint' },
   { text: 'word', left: '70%', top: '84%', dur: '114s', delay: '-60s' },
   { text: '…', left: '88%', top: '30%', dur: '63s', delay: '-25s' },
   { text: 'tok_1832', left: '92%', top: '72%', dur: '99s', delay: '-41s' },
-] as const;
+];
 
 function createTokenField(): HTMLElement {
   const field = document.createElement('div');
@@ -237,7 +248,9 @@ function createTokenField(): HTMLElement {
   field.setAttribute('aria-hidden', 'true');
   for (const chip of TOKEN_CHIPS) {
     const span = document.createElement('span');
-    span.className = 'token-chip';
+    span.className = chip.variant
+      ? `token-chip token-chip--${chip.variant}`
+      : 'token-chip';
     span.style.left = chip.left;
     span.style.top = chip.top;
     span.style.animationDuration = chip.dur;

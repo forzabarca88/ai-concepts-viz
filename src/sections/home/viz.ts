@@ -1,15 +1,21 @@
 /**
- * Home visualisations — the reference pattern for Tasks 3–12:
+ * Home visualisations — "You vs the model" prediction duel (Task 3).
  *
- *  - all state lives in the DOM (no canvas), so every control is
- *    jsdom-testable and screenshot-frozen;
- *  - every data list is fixed and hardcoded (deterministic-everything);
+ *  - the duel state machine (pick → reveal → score) is pure DOM, so every
+ *    control is jsdom-testable and every state mirrors to the screen;
+ *  - a 3D hero layer (three candidate orbs + argmax ring + starfield)
+ *    sits behind the UI via `.stage-3d-layer`, built through the
+ *    `createStageKit` resilience kit (blit + context-loss rebuild);
+ *  - all data lists are fixed and hardcoded (deterministic-everything);
  *  - each mount() returns a cleanup that removes its subtree.
  */
+import * as THREE from 'three';
 import { navGroups } from '../../shell/nav';
+import { addStarfield, createStageKit, makeGlowPoints } from '../../three/helpers';
+import type { Stage3DHandle } from '../../three/helpers';
 
 /* ============================================================
-   1 · Next-token hero demo (in the .stage)
+   1 · You-vs-the-model duel (in the .stage)
    ============================================================ */
 
 interface Candidate {
@@ -24,7 +30,7 @@ interface NextTokenSentence {
   candidates: Candidate[];
 }
 
-/** Fixed list — cycled by "New sentence" in this exact order. */
+/** Fixed list — walked in this exact order. */
 const SENTENCES: NextTokenSentence[] = [
   {
     before: 'The best part of learning is that',
@@ -52,22 +58,50 @@ const SENTENCES: NextTokenSentence[] = [
   },
 ];
 
-const EXPLAINER = "The model never knows the answer — it just ranks what's likely next.";
+/** Fixed score-card summaries, indexed by matches (0–3). */
+const SUMMARIES: string[] = [
+  'Zero matches — you think in a way no model has. That is the whole story of language.',
+  'One match — close. Models lean on probability; you lean on sense.',
+  'Two matches — you and the model share a sense of the likely. That is why it feels natural to read.',
+  "Three matches — you just predicted like a machine. Welcome to the model's mind.",
+];
+
+type Phase = 'pick' | 'reveal' | 'score';
+
+/** The model's pick: the argmax candidate index (0 for all three fixed sentences). */
+const argmaxOf = (sentence: NextTokenSentence): number =>
+  sentence.candidates.reduce(
+    (best, c, i, arr) => (c.prob > arr[best].prob ? i : best),
+    0,
+  );
 
 export function mountNextToken(root: HTMLElement): () => void {
   let index = 0;
+  let picks: number[] = [];
+  let phase: Phase = 'pick';
 
+  const matchesSoFar = (): number =>
+    picks.reduce(
+      (n, pick, i) => n + (pick !== undefined && pick === argmaxOf(SENTENCES[i]) ? 1 : 0),
+      0,
+    );
+
+  /* ----- stage (dark card) + 3D hero layer behind the UI ----- */
   const stage = document.createElement('section');
   stage.className = 'stage nt-stage';
-  stage.setAttribute('aria-label', 'Next-token prediction demo');
+  stage.setAttribute('aria-label', 'Next-token prediction duel');
+
+  const canvasWrap = document.createElement('div');
+  canvasWrap.className = 'nt-canvas-wrap stage-3d-layer';
 
   const head = document.createElement('header');
   head.className = 'nt-head';
   const h2 = document.createElement('h2');
-  h2.textContent = 'Watch it guess the next word';
+  h2.textContent = 'You vs the model';
   const sub = document.createElement('p');
   sub.className = 'nt-sub';
-  sub.textContent = 'Pick what you think comes next — the model already has its own ranking.';
+  sub.textContent =
+    'Pick the next word three times. The model already ranked every option — see if your gut matches its math.';
   head.append(h2, sub);
 
   const sentence = document.createElement('p');
@@ -76,39 +110,95 @@ export function mountNextToken(root: HTMLElement): () => void {
   blank.className = 'nt-blank';
   blank.textContent = '___';
 
+  const body = document.createElement('div');
+  body.className = 'nt-body';
   const cands = document.createElement('div');
   cands.className = 'nt-cands';
-
-  const explainer = document.createElement('p');
-  explainer.className = 'nt-explain';
-  explainer.hidden = true;
-  explainer.textContent = EXPLAINER;
+  const reveal = document.createElement('p');
+  reveal.className = 'nt-reveal';
+  reveal.setAttribute('aria-live', 'polite');
+  const result = document.createElement('div');
+  result.className = 'nt-result';
+  result.hidden = true;
+  const resultLine = document.createElement('h3');
+  resultLine.className = 'nt-result-line';
+  const resultSummary = document.createElement('p');
+  resultSummary.className = 'nt-result-summary';
+  result.append(resultLine, resultSummary);
+  body.append(cands, reveal, result);
 
   const bar = document.createElement('div');
   bar.className = 'stage-bar';
-  const newButton = document.createElement('button');
-  newButton.type = 'button';
-  newButton.className = 'btn btn-ghost btn-small nt-new';
-  newButton.textContent = 'New sentence';
-  const hint = document.createElement('span');
-  hint.className = 'stage-bar-hint';
-  hint.textContent = "No wrong answers — that's the point.";
-  bar.append(newButton, hint);
+  const primary = document.createElement('button');
+  primary.type = 'button';
+  primary.className = 'btn btn-primary nt-next';
+  const scorePill = document.createElement('span');
+  scorePill.className = 'nt-score';
+  const again = document.createElement('button');
+  again.type = 'button';
+  again.className = 'btn btn-ghost btn-small nt-again';
+  again.textContent = 'Play again';
+  again.hidden = true;
+  bar.append(primary, scorePill, again);
 
   let candButtons: HTMLButtonElement[] = [];
 
-  const choose = (picked: number) => {
-    candButtons.forEach((btn, j) => btn.setAttribute('aria-pressed', String(j === picked)));
-    cands.classList.add('nt-cands--decided');
-    blank.className = 'nt-chosen';
-    blank.textContent = SENTENCES[index].candidates[picked].text;
-    explainer.hidden = false;
+  /* ----- 3D hero: three candidate orbs + argmax ring + starfield -----
+     Built through the kit so the blit + context-loss rebuild patterns
+     are never hand-rolled here. `build` runs once per (re)created
+     handle; `reapply` mirrors the current duel state onto the refs
+     (and must tolerate null refs — the jsdom fallback path). */
+  const applyHero = (refs: HeroRefs | null): void => {
+    if (!refs) return; // jsdom / no-WebGL — the DOM mirror carries the state
+    if (phase === 'reveal') {
+      const picked = picks[index];
+      refs.orbMats.forEach((mat, i) => {
+        mat.opacity = i === picked ? 1 : 0.25;
+      });
+      refs.orbGroups.forEach((group, i) => group.scale.setScalar(i === picked ? 1.25 : 1));
+      refs.ring.visible = true;
+    } else {
+      const dim = phase === 'pick' ? 0.45 : 0.25;
+      refs.orbMats.forEach((mat) => {
+        mat.opacity = dim;
+      });
+      refs.orbGroups.forEach((group) => group.scale.setScalar(1));
+      refs.ring.visible = false;
+    }
   };
 
-  const build = () => {
+  const kit = createStageKit({
+    wrapper: canvasWrap,
+    stageOpts: {
+      seed: 20260207,
+      camera: { position: [0, 0, 9], fov: 40 },
+      alpha: true,
+    },
+    build: (h) => buildHeroScene(h),
+    reapply: (refs) => applyHero(refs as HeroRefs | null),
+  });
+
+  const renderHero = (): void => {
+    applyHero(kit.refs as HeroRefs | null);
+    kit.render();
+  };
+
+  const updateScore = (): void => {
+    scorePill.textContent = `Score: ${matchesSoFar()} / ${SENTENCES.length}`;
+  };
+
+  const refreshBar = (): void => {
+    primary.textContent =
+      index === SENTENCES.length - 1 ? 'See your score' : 'Next sentence';
+    primary.disabled = phase !== 'reveal';
+    primary.hidden = phase === 'score';
+    again.hidden = phase !== 'score';
+  };
+
+  const buildCands = (): void => {
     cands.innerHTML = '';
     candButtons = [];
-    for (const candidate of SENTENCES[index].candidates) {
+    SENTENCES[index].candidates.forEach((candidate, i) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'nt-cand';
@@ -133,28 +223,169 @@ export function mountNextToken(root: HTMLElement): () => void {
       track.appendChild(fill);
 
       btn.append(top, track);
-      const picked = candButtons.length;
-      btn.addEventListener('click', () => choose(picked));
+      btn.addEventListener('click', () => choose(i));
       cands.appendChild(btn);
       candButtons.push(btn);
-    }
+    });
   };
 
-  newButton.addEventListener('click', () => {
-    index = (index + 1) % SENTENCES.length;
+  /** Enter the pick phase for `index` (sentence 1 after a reset). */
+  const renderSentence = (): void => {
     blank.className = 'nt-blank';
     blank.textContent = '___';
     sentence.replaceChildren(document.createTextNode(`${SENTENCES[index].before} `), blank);
     cands.classList.remove('nt-cands--decided');
-    explainer.hidden = true;
-    build();
+    cands.hidden = false;
+    reveal.hidden = false;
+    reveal.textContent = '';
+    reveal.classList.remove('nt-reveal--agree', 'nt-reveal--mismatch');
+    buildCands();
+    refreshBar();
+  };
+
+  const choose = (picked: number): void => {
+    if (phase !== 'pick') return;
+    picks[index] = picked;
+    phase = 'reveal';
+
+    const s = SENTENCES[index];
+    const model = argmaxOf(s);
+    candButtons.forEach((btn, j) => {
+      btn.disabled = true;
+      btn.setAttribute('aria-pressed', String(j === picked));
+    });
+    cands.classList.add('nt-cands--decided');
+    blank.className = 'nt-chosen';
+    blank.textContent = s.candidates[picked].text;
+    reveal.textContent =
+      picked === model
+        ? `You and the model agree: "${s.candidates[picked].text}".`
+        : `You said "${s.candidates[picked].text}". The model would say "${s.candidates[model].text}" (${s.candidates[model].prob}%). Both are possible — that is the game.`;
+    reveal.classList.toggle('nt-reveal--agree', picked === model);
+    reveal.classList.toggle('nt-reveal--mismatch', picked !== model);
+    updateScore();
+    refreshBar();
+    renderHero();
+  };
+
+  const renderScore = (): void => {
+    const m = matchesSoFar();
+    cands.hidden = true;
+    reveal.hidden = true;
+    result.hidden = false;
+    resultLine.textContent = `You matched the model ${m} out of ${SENTENCES.length} times.`;
+    resultSummary.textContent = SUMMARIES[m];
+    updateScore();
+    refreshBar();
+  };
+
+  primary.addEventListener('click', () => {
+    if (phase !== 'reveal') return;
+    if (index < SENTENCES.length - 1) {
+      index += 1;
+      phase = 'pick';
+      renderSentence();
+    } else {
+      phase = 'score';
+      renderScore();
+    }
+    renderHero();
   });
 
-  build();
-  sentence.append(document.createTextNode(`${SENTENCES[index].before} `), blank);
-  stage.append(head, sentence, cands, explainer, bar);
+  again.addEventListener('click', () => {
+    index = 0;
+    picks = [];
+    phase = 'pick';
+    result.hidden = true;
+    renderSentence();
+    updateScore();
+    renderHero();
+  });
+
+  stage.append(canvasWrap, head, sentence, body, bar);
   root.appendChild(stage);
-  return () => stage.remove();
+
+  renderSentence();
+  updateScore();
+
+  return () => {
+    kit.dispose();
+    stage.remove();
+  };
+}
+
+/* ------------------------------ 3D hero scene ---------------------------- */
+
+interface HeroRefs {
+  orbGroups: THREE.Group[];
+  orbMats: THREE.PointsMaterial[];
+  ring: THREE.Points;
+}
+
+/* Point budget: 3×90 orbs + 60 ring + 250 starfield = 590 (≤ ~1,500 + 300). */
+const ORB_COUNT = 90;
+const ORB_RADIUS = 0.55;
+const RING_COUNT = 60;
+const RING_RADIUS = 0.95;
+const ORB_XS = [-3, 0, 3] as const;
+const ORB_COLORS = ['#6e85ff', '#ffb020', '#94a0b9'] as const;
+
+function buildHeroScene(handle: Stage3DHandle): HeroRefs | null {
+  const scene = handle.scene;
+  if (!scene) return null;
+  const { rand } = handle;
+
+  const orbGroups: THREE.Group[] = [];
+  const orbMats: THREE.PointsMaterial[] = [];
+  for (let i = 0; i < ORB_XS.length; i++) {
+    // Small seeded jitter around y = 0 keeps the trio from feeling placed on a ruler.
+    const y = (rand() - 0.5) * 0.3;
+    const positions = new Float32Array(ORB_COUNT * 3);
+    const colors = new Float32Array(ORB_COUNT * 3);
+    const color = new THREE.Color(ORB_COLORS[i]);
+    for (let p = 0; p < ORB_COUNT; p++) {
+      const theta = rand() * Math.PI * 2;
+      const phi = Math.acos(2 * rand() - 1);
+      const r = ORB_RADIUS * Math.cbrt(rand());
+      const sinPhi = Math.sin(phi);
+      positions[p * 3] = r * sinPhi * Math.cos(theta);
+      positions[p * 3 + 1] = r * Math.cos(phi);
+      positions[p * 3 + 2] = r * sinPhi * Math.sin(theta);
+      colors[p * 3] = color.r;
+      colors[p * 3 + 1] = color.g;
+      colors[p * 3 + 2] = color.b;
+    }
+    const orb = makeGlowPoints(positions, colors, 0.18);
+    const group = new THREE.Group();
+    group.position.set(ORB_XS[i], y, 0);
+    group.add(orb);
+    scene.add(group);
+    orbGroups.push(group);
+    orbMats.push(orb.material as THREE.PointsMaterial);
+  }
+
+  /* Amber 60-point ring around the argmax orb (index 0), in the
+     camera-facing xy-plane. A seeded phase keeps it deterministic
+     while breaking the "perfectly drawn circle" look. */
+  const ringPhase = rand() * Math.PI * 2;
+  const ringPositions = new Float32Array(RING_COUNT * 3);
+  const ringColors = new Float32Array(RING_COUNT * 3);
+  const amber = new THREE.Color('#ffb020');
+  for (let k = 0; k < RING_COUNT; k++) {
+    const angle = ringPhase + (k / RING_COUNT) * Math.PI * 2;
+    ringPositions[k * 3] = Math.cos(angle) * RING_RADIUS;
+    ringPositions[k * 3 + 1] = Math.sin(angle) * RING_RADIUS;
+    ringColors[k * 3] = amber.r;
+    ringColors[k * 3 + 1] = amber.g;
+    ringColors[k * 3 + 2] = amber.b;
+  }
+  const ring = makeGlowPoints(ringPositions, ringColors, 0.1);
+  ring.position.set(ORB_XS[0], orbGroups[0].position.y, 0);
+  scene.add(ring);
+
+  addStarfield(handle, 250, 9, '#22304f');
+
+  return { orbGroups, orbMats, ring };
 }
 
 /* ============================================================
