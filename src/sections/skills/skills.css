@@ -1,0 +1,470 @@
+/* ============================================================
+   Skills ("08 · Going agentic") — teach cards, the agent, its
+   backpack, the task board, the results and the 3D skill dock.
+   Every rule is scoped under .page--skills.
+   ============================================================ */
+
+/* ---------- stage + 3D skill-dock layer ---------- */
+/* The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it, behind the stage UI. */
+
+/* ---------- stage head ---------- */
+.page--skills .skill-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.page--skills .skill-sub {
+  margin-top: var(--space-2);
+  max-width: 60ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+/* ---------- teach cards (pick which skill, in any order) ---------- */
+.page--skills .skill-teach-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.page--skills .skill-teach-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  transition:
+    border-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+/* a learned card glows mint — the same success signal as the
+   inventory badge and the chest lights */
+.page--skills .skill-teach-card--learned {
+  border-color: rgba(34, 196, 142, 0.55);
+  box-shadow: 0 0 18px rgba(34, 196, 142, 0.16);
+}
+
+.page--skills .skill-teach-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.page--skills .skill-teach-name {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--on-stage);
+}
+
+.page--skills .skill-teach {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid rgba(148, 160, 185, 0.4);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--on-stage);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.page--skills .skill-teach:hover {
+  border-color: var(--accent-glow);
+}
+
+.page--skills .skill-teach[aria-pressed='true'] {
+  border-color: rgba(34, 196, 142, 0.55);
+  background: rgba(34, 196, 142, 0.12);
+  color: var(--mint);
+}
+
+/* ---------- body grid: avatar+inventory | board+readiness+results ---------- */
+.page--skills .skill-body {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+  align-items: start;
+}
+
+/* ---------- the robot (inline SVG, fixed geometry) ---------- */
+.page--skills .skill-avatar {
+  width: 100%;
+  max-width: 112px;
+  margin-inline: auto;
+}
+
+.page--skills .sk-avatar {
+  width: 100%;
+  height: auto;
+}
+
+.page--skills .sk-head,
+.page--skills .sk-torso,
+.page--skills .sk-ear,
+.page--skills .sk-arm {
+  fill: var(--stage-2);
+  stroke: rgba(159, 168, 188, 0.35);
+  stroke-width: 2;
+}
+
+.page--skills .sk-eye {
+  fill: var(--on-stage);
+}
+
+.page--skills .sk-smile {
+  fill: none;
+  stroke: var(--on-stage);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.page--skills .sk-ant-stalk {
+  stroke: var(--on-stage-soft);
+  stroke-width: 3;
+}
+
+.page--skills .sk-ant-ball {
+  fill: var(--amber);
+}
+
+.page--skills .sk-neck {
+  fill: rgba(159, 168, 188, 0.35);
+}
+
+.page--skills .sk-light {
+  fill: var(--stage);
+  stroke: rgba(159, 168, 188, 0.35);
+  stroke-width: 1.5;
+}
+
+/* one chest light per learned skill (mint = success) */
+.page--skills .sk-light--on {
+  fill: var(--mint);
+  stroke: rgba(34, 196, 142, 0.6);
+}
+
+.page--skills .sk-panel {
+  fill: rgba(159, 168, 188, 0.3);
+}
+
+.page--skills .sk-foot {
+  fill: rgba(159, 168, 188, 0.45);
+}
+
+/* ---------- skill inventory ---------- */
+.page--skills .skill-inventory {
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+.page--skills .skill-inv-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.page--skills .skill-inv-head {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-inv-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-empty {
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--on-stage-soft);
+  text-align: center;
+}
+
+.page--skills .skill-cards {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page--skills .skill-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  transition:
+    border-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+/* the card the selected task needs glows amber (attention) */
+.page--skills .skill-card--needed {
+  border-color: var(--amber);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.22);
+}
+
+.page--skills .skill-card-icon {
+  font-size: 1.0625rem;
+  line-height: 1;
+}
+
+.page--skills .skill-card-name {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--on-stage);
+}
+
+.page--skills .skill-badge {
+  padding: 0.1875rem 0.5rem;
+  border: 1px solid rgba(34, 196, 142, 0.45);
+  border-radius: var(--radius-chip);
+  background: rgba(34, 196, 142, 0.1);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--mint);
+}
+
+.page--skills .skill-forget {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid rgba(255, 107, 94, 0.5);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--coral);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.page--skills .skill-forget:hover {
+  background: rgba(255, 107, 94, 0.12);
+}
+
+/* ---------- task board ----------
+   Fixed height: 219px is the three-task board with a "Done ✓" badge
+   shown — the tallest content — so the stage (and the 3D canvas
+   behind it) never resizes between states. */
+.page--skills .skill-tasks {
+  height: 219px;
+}
+
+.page--skills .skill-board-head {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page--skills .skill-task {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  text-align: left;
+  cursor: pointer;
+  color: var(--on-stage-soft);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out);
+}
+
+.page--skills .skill-task:hover {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+/* the picked task carries the attention signal */
+.page--skills .skill-task[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.1);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.16);
+  color: var(--on-stage);
+}
+
+.page--skills .skill-task-need {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  color: var(--on-stage-soft);
+}
+
+/* the "Done ✓" badge on a tried task's card — decorative, so the
+   button's accessible name stays stable for role queries */
+.page--skills .skill-task-done {
+  display: inline-block;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid rgba(34, 196, 142, 0.45);
+  border-radius: var(--radius-chip);
+  background: rgba(34, 196, 142, 0.1);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--mint);
+}
+
+/* author display rules outrank the UA [hidden] — scope the override */
+.page--skills .skill-task-done[hidden] {
+  display: none;
+}
+
+/* ---------- readiness line (+ the Try button when ready) ----------
+   Fixed height: 50px is the Ready state with the Try button — the
+   tallest content — so the stage never resizes when it appears. */
+.page--skills .skill-readiness {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+.page--skills .skill-status {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.page--skills .skill-status--idle {
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-status--ready {
+  color: var(--mint);
+}
+
+.page--skills .skill-status--missing {
+  color: var(--coral);
+}
+
+.page--skills .skill-missing-detail {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--on-stage-soft);
+}
+
+/* the primary action pushes to the end of the readiness row */
+.page--skills .skill-try {
+  margin-left: auto;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+}
+
+/* author display rules outrank the UA [hidden] — scope the override */
+.page--skills .skill-try[hidden] {
+  display: none;
+}
+
+/* ---------- results (always present; fixed height so the stage and
+   the 3D canvas behind it never resize between states: 196px is the
+   three-result-line state at the 1280 baseline) ---------- */
+.page--skills .skill-results {
+  height: 196px;
+  margin-top: var(--space-3);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+.page--skills .skill-results-head {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-results-empty {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--on-stage-soft);
+}
+
+.page--skills .skill-result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page--skills .skill-result-line {
+  border-left: 2px solid rgba(34, 196, 142, 0.6);
+  padding-left: 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--on-stage);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--skills .skill-body {
+    grid-template-columns: 1fr;
+  }
+
+  .page--skills .skill-teach-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page--skills .skill-avatar {
+    max-width: 100px;
+  }
+}

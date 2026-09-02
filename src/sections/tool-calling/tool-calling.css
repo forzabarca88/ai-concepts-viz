@@ -1,0 +1,380 @@
+/* ============================================================
+   Tool calling ("07 · Going agentic").
+   Every rule is scoped under .page--tool-calling.
+   ============================================================ */
+
+/* ---------- stage + 3D packet-relay layer ----------
+   The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it, behind the stage UI. */
+
+/* ---------- stage head + question picker ---------- */
+.page--tool-calling .tool-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.page--tool-calling .tool-sub {
+  margin-top: var(--space-2);
+  max-width: 70ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--tool-calling .tool-pickers {
+  flex-shrink: 0;
+  padding-top: var(--space-1);
+}
+
+.page--tool-calling .tool-pickers-label {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--tool-calling .tool-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.page--tool-calling .tool-pick {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+  color: var(--on-stage-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out);
+}
+
+.page--tool-calling .tool-pick:hover {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+/* the picked question glows amber (chosen/attention) */
+.page--tool-calling .tool-pick[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.12);
+  color: var(--on-stage);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.18);
+}
+
+/* ---------- the SVG flow ---------- */
+.page--tool-calling .tool-flow-zone {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* the viewBox is fixed (680×336) for every state, so the rendered
+   height never changes and the stage never resizes. */
+.page--tool-calling .tv-svg {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.page--tool-calling .tv-svg text {
+  font-family: var(--font-body);
+}
+
+.page--tool-calling .tv-svg .tv-mono {
+  font-family: var(--font-mono);
+}
+
+/* node labels (mono eyebrows inside the nodes) */
+.page--tool-calling .tv-node-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  fill: var(--on-stage-soft);
+}
+
+/* user bubble — light, like a chat message */
+.page--tool-calling .tv-user-bubble {
+  fill: var(--accent-soft);
+}
+
+.page--tool-calling .tv-user-label {
+  fill: var(--accent);
+}
+
+.page--tool-calling .tv-user-text {
+  font-size: 15px;
+  font-weight: 500;
+  fill: var(--ink);
+}
+
+/* model bubble — the model's own words */
+.page--tool-calling .tv-model-bubble {
+  fill: var(--stage-2);
+  stroke: rgba(159, 168, 188, 0.4);
+}
+
+.page--tool-calling .tv-model-text {
+  font-size: 15px;
+  fill: var(--on-stage);
+}
+
+/* tool card — the distinct hexagon, cobalt = action */
+.page--tool-calling .tv-tool-hex {
+  fill: var(--stage-2);
+  stroke: var(--accent-glow);
+  stroke-width: 1.5;
+}
+
+.page--tool-calling .tv-tool-label {
+  fill: var(--accent-glow);
+}
+
+.page--tool-calling .tv-tool-call {
+  font-size: 14px;
+  font-weight: 500;
+  fill: var(--on-stage);
+}
+
+/* no tool picked yet — the card is still a placeholder */
+.page--tool-calling .tv-tool-pending {
+  fill: var(--on-stage-soft);
+}
+
+.page--tool-calling .tv-tool-result {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--mint);
+}
+
+/* a wrong tool came back — the result line turns coral */
+.page--tool-calling .tv-tool-result--error {
+  fill: var(--coral);
+}
+
+/* answer bubble — four tones: off (no tools), wrong (wrong tool),
+   pending (no pick yet), on (the correct tool ran) */
+.page--tool-calling .tv-answer-bubble--on {
+  fill: var(--stage-2);
+  stroke: rgba(34, 196, 142, 0.5);
+}
+
+.page--tool-calling .tv-answer-bubble--off {
+  fill: var(--stage-2);
+  stroke: rgba(255, 107, 94, 0.55);
+}
+
+.page--tool-calling .tv-answer-bubble--wrong {
+  fill: var(--stage-2);
+  stroke: rgba(255, 107, 94, 0.75);
+}
+
+.page--tool-calling .tv-answer-bubble--pending {
+  fill: var(--stage-2);
+  stroke: rgba(159, 168, 188, 0.4);
+  stroke-dasharray: 6 4;
+}
+
+.page--tool-calling .tv-answer-label--on {
+  fill: var(--mint);
+}
+
+.page--tool-calling .tv-answer-label--off {
+  fill: var(--coral);
+}
+
+.page--tool-calling .tv-answer-label--wrong {
+  fill: var(--coral);
+}
+
+.page--tool-calling .tv-answer-label--pending {
+  fill: var(--on-stage-soft);
+}
+
+.page--tool-calling .tv-answer-text {
+  font-size: 15px;
+  fill: var(--on-stage);
+}
+
+/* the "Wrong tool" tag in the answer bubble's corner */
+.page--tool-calling .tv-wrong-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  fill: var(--coral);
+}
+
+/* connectors between the nodes */
+.page--tool-calling .tv-connector {
+  stroke: rgba(159, 168, 188, 0.55);
+  stroke-width: 2;
+}
+
+/* the flow has already reached this connector */
+.page--tool-calling .tv-connector--active {
+  stroke: var(--amber);
+}
+
+/* the amber halo around the highlighted node */
+.page--tool-calling .tv-halo {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 3;
+  opacity: 0.55;
+}
+
+/* the four-beat gutter beside the flow */
+.page--tool-calling .tv-step {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  fill: var(--on-stage-soft);
+}
+
+.page--tool-calling .tv-step--active {
+  fill: var(--amber);
+}
+
+/* beats that don't happen with tools off */
+.page--tool-calling .tv-step--muted {
+  opacity: 0.35;
+}
+
+/* ---------- the caption under the flow ----------
+   Reserved for two lines so the caption never changes the stage
+   height when its text swaps between states. */
+.page--tool-calling .tool-caption {
+  margin: var(--space-3) auto 0;
+  min-height: 3rem;
+  max-width: 76ch;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--on-stage);
+}
+
+/* ---------- "which tool does it call?" ----------
+   Fixed-height zone, always present: the stage (and the 3D canvas
+   behind it) never resizes between the hidden/visible states. */
+.page--tool-calling .tool-choose-zone {
+  height: 76px;
+}
+
+.page--tool-calling .tool-choose {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+}
+
+/* author display rules outrank the UA [hidden] — scope the override */
+.page--tool-calling .tool-choose[hidden] {
+  display: none;
+}
+
+.page--tool-calling .tool-choose-label {
+  margin-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--tool-calling .tool-try-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.page--tool-calling .tool-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+  color: var(--on-stage-soft);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.page--tool-calling .tool-try:hover:not(:disabled) {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+/* the tool that ran the call glows mint */
+.page--tool-calling .tool-try[aria-pressed='true'] {
+  border-color: var(--mint);
+  background: rgba(34, 196, 142, 0.12);
+  color: var(--on-stage);
+  box-shadow: 0 0 18px rgba(34, 196, 142, 0.18);
+}
+
+.page--tool-calling .tool-try:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* the "Tried — no help" tag on a retired wrong tool */
+.page--tool-calling .tool-try-tag {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgba(255, 107, 94, 0.55);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 107, 94, 0.08);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--coral);
+}
+
+/* ---------- stage bar ---------- */
+.page--tool-calling .tool-stage .stage-bar {
+  margin-top: auto;
+}
+
+.page--tool-calling .tool-switch-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.page--tool-calling .tool-switch-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--tool-calling .tool-head {
+    flex-direction: column;
+  }
+}

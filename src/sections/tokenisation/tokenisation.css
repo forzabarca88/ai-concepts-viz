@@ -1,0 +1,358 @@
+/* ============================================================
+   Tokenisation ("02 · Core ideas") — words into tokens.
+   Every rule is scoped under .page--tokenisation.
+   ============================================================ */
+
+/* ---------- stage ---------- */
+.page--tokenisation .tok-sub {
+  margin-top: var(--space-2);
+  max-width: 52ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--tokenisation .tok-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  min-height: 2.75rem;
+}
+
+.page--tokenisation .tok-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+  color: var(--on-stage);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.page--tokenisation .tok-chip:hover {
+  border-color: rgba(159, 168, 188, 0.5);
+}
+
+/* subword tokens keep their leading space — make it visible */
+.page--tokenisation .tok-chip-text {
+  white-space: pre;
+}
+
+/* the inspected chip glows amber (chosen/attention) */
+.page--tokenisation .tok-chip[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow:
+    0 0 0 1px var(--amber),
+    0 0 24px rgba(255, 176, 32, 0.25);
+  color: var(--amber-glow);
+}
+
+.page--tokenisation .tok-emoji-note {
+  margin-top: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--amber);
+}
+
+/* ---------- panels below the stage ---------- */
+.page--tokenisation .tok-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  align-items: start;
+}
+
+.page--tokenisation .tok-panel-title {
+  margin-bottom: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+/* ---------- panel 1 · token inspector ---------- */
+.page--tokenisation .tok-insp-empty {
+  min-height: 4.5rem;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-insp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: 4.5rem;
+}
+
+.page--tokenisation .tok-insp-text {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: pre;
+  color: var(--ink);
+}
+
+.page--tokenisation .tok-insp-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+}
+
+/* ---------- panel 2 · grain view ---------- */
+.page--tokenisation .tok-grain-sub {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-grain-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--tok-fill, 50%),
+    rgba(16, 20, 24, 0.12) var(--tok-fill, 50%)
+  );
+  cursor: pointer;
+}
+
+.page--tokenisation .tok-grain-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--tokenisation .tok-grain-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--tokenisation .tok-grain-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.page--tokenisation .tok-grain-tick--active {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.page--tokenisation .tok-grain-caption {
+  margin-top: var(--space-4);
+  min-height: 4.5rem;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-grain-count {
+  margin-top: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- panel 3 · next-token mini ---------- */
+.page--tokenisation .tok-next-sentence {
+  margin-bottom: var(--space-4);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.page--tokenisation .tok-next-blank {
+  padding: 0 0.25rem;
+  border-bottom: 2px dashed var(--ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  color: var(--ink-faint);
+}
+
+.page--tokenisation .tok-next-chosen {
+  padding: 0 0.25rem;
+  color: var(--amber-ink);
+}
+
+.page--tokenisation .tok-next-cands {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page--tokenisation .tok-next-cand {
+  display: block;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    opacity var(--dur-med) var(--ease-out);
+}
+
+.page--tokenisation .tok-next-cand:hover {
+  border-color: var(--ink-faint);
+}
+
+.page--tokenisation .tok-next-cand-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: 0.5rem;
+}
+
+.page--tokenisation .tok-next-cand-text {
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.page--tokenisation .tok-next-cand-prob {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-next-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 20, 24, 0.08);
+}
+
+.page--tokenisation .tok-next-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-glow);
+}
+
+/* chosen candidate: amber ring, amber bar, the others recede */
+.page--tokenisation .tok-next-cand[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber);
+  background: rgba(255, 176, 32, 0.08);
+}
+
+.page--tokenisation .tok-next-cand[aria-pressed='true'] .tok-next-fill {
+  background: var(--amber);
+}
+
+.page--tokenisation .tok-next-cand[aria-pressed='true'] .tok-next-cand-prob {
+  color: var(--amber-ink);
+}
+
+.page--tokenisation .tok-next-cands--decided .tok-next-cand:not([aria-pressed='true']) {
+  opacity: 0.5;
+}
+
+.page--tokenisation .tok-next-explain {
+  margin-top: var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--amber);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ---------- panel 4 · type your own sentence ---------- */
+.page--tokenisation .tok-typed-sub {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.page--tokenisation .tok-typed-input {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(148, 160, 185, 0.25);
+  border-radius: var(--radius-md);
+  background: rgba(7, 11, 20, 0.55);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  caret-color: var(--accent-glow);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.page--tokenisation .tok-typed-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.page--tokenisation .tok-typed-input:focus-visible {
+  outline: none;
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 0 3px rgba(110, 133, 255, 0.18);
+}
+
+.page--tokenisation .tok-typed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.page--tokenisation .tok-typed-empty {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--coral);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--tokenisation .tok-panels {
+    grid-template-columns: 1fr;
+  }
+}

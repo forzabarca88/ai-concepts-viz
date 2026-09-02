@@ -1,0 +1,301 @@
+/* ============================================================
+   Home ("00 · Start here") — the reference section.
+   Every rule is scoped under .page--home.
+   ============================================================ */
+
+/* ---------- 1 · next-token hero demo (.stage) ---------- */
+.page--home .nt-sub {
+  margin-top: var(--space-2);
+  max-width: 46ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--home .nt-sentence {
+  margin-top: var(--space-6);
+  max-width: 44ch;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--on-stage);
+}
+
+.page--home .nt-blank {
+  padding: 0 0.25rem;
+  border-bottom: 2px dashed var(--on-stage-soft);
+  font-family: var(--font-mono);
+  font-size: 1.125rem;
+  color: var(--on-stage-soft);
+}
+
+.page--home .nt-chosen {
+  padding: 0 0.25rem;
+  color: var(--amber);
+  text-shadow: 0 0 28px rgba(255, 201, 102, 0.45);
+}
+
+.page--home .nt-cands {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.page--home .nt-cand {
+  display: block;
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  color: var(--on-stage);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    opacity var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.page--home .nt-cand:hover {
+  border-color: rgba(159, 168, 188, 0.4);
+}
+
+.page--home .nt-cand:active {
+  transform: translateY(1px);
+}
+
+.page--home .nt-cand-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: 0.625rem;
+}
+
+.page--home .nt-cand-text {
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+
+.page--home .nt-cand-prob {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--on-stage-soft);
+}
+
+.page--home .nt-bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--stage);
+}
+
+.page--home .nt-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-glow);
+  transition:
+    width var(--dur-med) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+/* chosen candidate: its bar glows amber, the others recede */
+.page--home .nt-cand[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 28px rgba(255, 176, 32, 0.28);
+}
+
+.page--home .nt-cand[aria-pressed='true'] .nt-fill {
+  background: var(--amber);
+  box-shadow: 0 0 14px var(--amber-glow);
+}
+
+.page--home .nt-cand[aria-pressed='true'] .nt-cand-prob {
+  color: var(--amber);
+}
+
+.page--home .nt-cands--decided .nt-cand:not([aria-pressed='true']) {
+  opacity: 0.45;
+}
+
+/* fixed height for the variable body (candidates + reveal ↔ result
+   card) so the stage never changes size between duel states. Sized to
+   the largest state (mismatch-reveal): measured 350.922px at
+   ≥480px viewports → 351px; the reveal wraps to extra lines on narrow
+   phones (373.313px at 360–479px, 395.703px at 320px) → 396px there,
+   so no state clips at any supported width. */
+.page--home .nt-body {
+  height: 351px;
+}
+
+@media (max-width: 479px) {
+  .page--home .nt-body {
+    height: 396px;
+  }
+}
+
+/* the author `display` rules above (.nt-cands flex, .btn inline-flex)
+   outrank the UA stylesheet's [hidden] { display: none } — re-assert
+   hiding so phase-swapped elements are truly gone */
+.page--home .nt-cands[hidden],
+.page--home .nt-reveal[hidden],
+.page--home .nt-result[hidden],
+.page--home .nt-next[hidden],
+.page--home .nt-again[hidden] {
+  display: none;
+}
+
+/* candidates lock once a pick is made */
+.page--home .nt-cand:disabled {
+  cursor: default;
+}
+
+/* the reveal line — the duel's one-sentence verdict (aria-live) */
+.page--home .nt-reveal {
+  margin-top: var(--space-6);
+  max-width: 62ch;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--on-stage-soft);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage-soft);
+}
+
+.page--home .nt-reveal:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.page--home .nt-reveal--agree {
+  border-left-color: var(--mint);
+}
+
+.page--home .nt-reveal--mismatch {
+  border-left-color: var(--coral);
+}
+
+/* the score pill — always visible, mono */
+.page--home .nt-score {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid rgba(110, 133, 255, 0.18);
+  border-radius: var(--radius-pill);
+  background: var(--stage-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--on-stage-soft);
+  white-space: nowrap;
+}
+
+/* the score-phase result card */
+.page--home .nt-result {
+  margin-top: var(--space-6);
+  max-width: 62ch;
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid rgba(110, 133, 255, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(22, 32, 58, 0.55);
+  box-shadow: 0 0 32px rgba(110, 133, 255, 0.08);
+}
+
+.page--home .nt-result-line {
+  font-size: var(--text-body);
+  font-weight: 650;
+  color: var(--on-stage);
+}
+
+.page--home .nt-result-summary {
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage-soft);
+}
+
+/* ---------- 2 · overview map ---------- */
+.page--home .map {
+  margin-top: var(--space-12);
+}
+
+.page--home .map-sub {
+  margin-top: var(--space-2);
+  max-width: 52ch;
+  color: var(--ink-soft);
+}
+
+.page--home .map-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+.page--home .map-group h3 {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.page--home .map-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page--home .map-card {
+  display: block;
+  padding: var(--space-4);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.page--home .map-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(16, 20, 24, 0.07),
+    0 16px 40px rgba(16, 20, 24, 0.12);
+}
+
+.page--home .map-num {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.page--home .map-title {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.page--home .map-teaser {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 48rem) {
+  .page--home .map-groups {
+    grid-template-columns: 1fr;
+  }
+}

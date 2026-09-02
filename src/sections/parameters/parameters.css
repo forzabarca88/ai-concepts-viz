@@ -1,0 +1,349 @@
+/* ============================================================
+   Parameters ("03 · Core ideas") — the knob cloud.
+   Every rule is scoped under .page--parameters.
+   ============================================================ */
+
+/* ---------- stage + side panel ---------- */
+.page--parameters .par-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.page--parameters .par-sub {
+  margin-top: var(--space-2);
+  max-width: 48ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+/* A little taller than the default stage: the bottom block (status +
+   test card + bar) is fixed, so extra height all goes to the cloud. */
+.page--parameters .par-stage {
+  min-height: 560px;
+}
+
+/* The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it, behind the stage UI. */
+
+/* ---------- inspect tooltip (DOM card over the cloud) ---------- */
+.page--parameters .par-tip {
+  position: absolute;
+  top: 6.5rem;
+  left: var(--space-6);
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--on-stage);
+  background: var(--stage-2);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-chip);
+  padding: var(--space-2) var(--space-3);
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- status line + stage bar ---------- */
+/* margin-top: auto pins the status + bar to the stage's bottom edge,
+   leaving the cloud's centre clear. */
+.page--parameters .par-status {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* ---------- side panel ---------- */
+.page--parameters .par-side {
+  padding: var(--space-6);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--parameters .par-side-title {
+  font-size: var(--text-h3);
+  margin-bottom: var(--space-3);
+}
+
+/* ---------- topic picker (under the Model size label row) ---------- */
+.page--parameters .par-topics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.page--parameters .par-topic {
+  padding: 0.5rem 0.5rem;
+  border: 1px solid rgba(148, 160, 185, 0.25);
+  border-radius: var(--radius-chip);
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.page--parameters .par-topic:hover {
+  border-color: rgba(159, 176, 255, 0.5);
+  color: var(--ink);
+}
+
+/* the active topic glows in its own accent */
+.page--parameters .par-topic[aria-pressed='true'] {
+  color: var(--ink);
+  background: rgba(148, 160, 185, 0.1);
+}
+
+.page--parameters .par-topic--poetry[aria-pressed='true'] {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 1px var(--coral), 0 0 18px rgba(255, 107, 94, 0.25);
+}
+
+.page--parameters .par-topic--facts[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 18px rgba(255, 176, 32, 0.25);
+}
+
+.page--parameters .par-topic--code[aria-pressed='true'] {
+  border-color: var(--mint);
+  box-shadow: 0 0 0 1px var(--mint), 0 0 18px rgba(34, 196, 142, 0.25);
+}
+
+/* ---------- knob-count metric + size slider ---------- */
+/* "70,000,000,000" must fit the 21rem panel — smaller than --text-metric. */
+.page--parameters .par-metric .metric-value {
+  font-size: 1.75rem;
+}
+
+.page--parameters .par-size-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-top: var(--space-6);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--par-fill, 50%),
+    rgba(148, 160, 185, 0.2) var(--par-fill, 50%)
+  );
+  cursor: pointer;
+}
+
+.page--parameters .par-size-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--parameters .par-size-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--parameters .par-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--ink-faint);
+}
+
+.page--parameters .par-tick {
+  transition: color var(--dur-med) var(--ease-out);
+}
+
+.page--parameters .par-tick--active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---------- named knob cards ---------- */
+.page--parameters .par-knobs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.page--parameters .par-knob-card {
+  display: block;
+  width: 100%;
+  padding: 0.5625rem 0.75rem;
+  border: 1px solid rgba(148, 160, 185, 0.22);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.page--parameters .par-knob-card:hover {
+  border-color: rgba(159, 176, 255, 0.5);
+}
+
+.page--parameters .par-knob-card:active {
+  transform: translateY(1px);
+}
+
+/* the current topic's favourite knob wears the amber ring */
+.page--parameters .par-knob-card--fav {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 16px rgba(255, 176, 32, 0.2);
+}
+
+/* selected card: spotlight ring + tooltip in the cloud */
+.page--parameters .par-knob-card[aria-pressed='true'] {
+  border-color: var(--accent-glow);
+  box-shadow: 0 0 0 1px var(--accent-glow), 0 0 20px rgba(110, 133, 255, 0.3);
+}
+
+.page--parameters .par-knob-name {
+  display: block;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.page--parameters .par-knob-card[aria-pressed='true'] .par-knob-name {
+  color: var(--accent-glow);
+}
+
+.page--parameters .par-knob-id {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+/* ---------- knowledge meter ---------- */
+.page--parameters .par-meter {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(148, 160, 185, 0.16);
+}
+
+.page--parameters .par-meter-title {
+  font-size: var(--text-h3);
+}
+
+.page--parameters .par-meter-track {
+  display: block;
+  height: 8px;
+  margin-top: var(--space-3);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 160, 185, 0.18);
+}
+
+.page--parameters .par-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint);
+  transition: width var(--dur-med) var(--ease-out);
+}
+
+.page--parameters .par-meter-count {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+/* ---------- test-the-model card (fixed height — state-invariant) ----------
+   Lives inside the stage, above the stage bar. */
+.page--parameters .par-test {
+  display: flex;
+  flex-direction: column;
+  min-height: 132px;
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid rgba(110, 133, 255, 0.16);
+  border-radius: var(--radius-md);
+  /* translucent — the knob cloud glows through behind the card */
+  background: rgba(22, 32, 58, 0.66);
+}
+
+.page--parameters .par-test-title {
+  font-size: var(--text-h3);
+}
+
+.page--parameters .par-test-empty {
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  line-height: 1.55;
+  color: var(--on-stage-soft);
+}
+
+.page--parameters .par-test-ask {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-stage-soft);
+}
+
+.page--parameters .par-test-prompt {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  color: var(--on-stage);
+}
+
+.page--parameters .par-test-answer {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--mint);
+}
+
+.page--parameters .par-test-reveal {
+  margin-top: var(--space-3);
+  align-self: flex-start;
+}
+
+/* the author `display` rules above (.par-knob-card block, .btn
+   inline-flex) outrank the UA stylesheet's [hidden] { display: none } —
+   re-assert hiding so state-swapped elements are truly gone */
+.page--parameters .par-tip[hidden],
+.page--parameters .par-test-empty[hidden],
+.page--parameters .par-test-ask[hidden],
+.page--parameters .par-test-prompt[hidden],
+.page--parameters .par-test-answer[hidden],
+.page--parameters .par-test-reveal[hidden] {
+  display: none;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--parameters .par-grid {
+    grid-template-columns: 1fr;
+  }
+}

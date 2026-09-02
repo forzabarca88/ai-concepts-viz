@@ -1,0 +1,251 @@
+/* ============================================================
+   MCP servers ("09 · Going agentic").
+   Every rule is scoped under .page--mcp.
+   ============================================================ */
+
+/* ---------- stage head ---------- */
+.page--mcp .mcp-sub {
+  margin-top: var(--space-2);
+  max-width: 56ch;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage-soft);
+}
+
+/* ---------- the three columns ---------- */
+.page--mcp .mcp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  align-items: start;
+}
+
+.page--mcp .mcp-col-label {
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+/* ---------- column 1: apps ---------- */
+.page--mcp .mcp-apps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.page--mcp .mcp-app {
+  padding: var(--space-3);
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  transition:
+    border-color var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out);
+}
+
+.page--mcp .mcp-app-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--on-stage);
+  text-align: left;
+  cursor: pointer;
+}
+
+.page--mcp .mcp-app-icon {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+/* the active app is lit (amber = attention/chosen) */
+.page--mcp .mcp-app--active {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.1);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.16);
+}
+
+/* "connected: X" chips under the app name */
+.page--mcp .mcp-app-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.page--mcp .mcp-chip {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+/* ---------- column 2: the 3D socket ----------
+   A fixed-height column that replaces the old SVG socket. The
+   createStageKit kit appends its (absolutely positioned) blit
+   canvas inside this wrapper; 252px keeps the framing invariant. */
+.page--mcp .mcp-col--socket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page--mcp .mcp-canvas-wrap {
+  width: 100%;
+  height: 252px;
+  position: relative;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(420px 220px at 50% 42%, rgba(110, 133, 255, 0.1), transparent 70%),
+    var(--stage);
+}
+
+/* ---------- column 3: server plugs ---------- */
+.page--mcp .mcp-plugs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page--mcp .mcp-plug {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0.5625rem 0.875rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--on-stage-soft);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out);
+}
+
+.page--mcp .mcp-plug:hover {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+.page--mcp .mcp-plug-icon {
+  font-size: 1.0625rem;
+  line-height: 1;
+}
+
+/* a docked plug glows in its own cable colour */
+.page--mcp .mcp-plug[aria-pressed='true'] {
+  color: var(--on-stage);
+}
+
+.page--mcp .mcp-plug--files[aria-pressed='true'] {
+  border-color: var(--amber);
+  background: rgba(255, 176, 32, 0.1);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.16);
+}
+
+.page--mcp .mcp-plug--calendar[aria-pressed='true'] {
+  border-color: var(--accent-glow);
+  background: rgba(110, 133, 255, 0.12);
+  box-shadow: 0 0 18px rgba(110, 133, 255, 0.18);
+}
+
+.page--mcp .mcp-plug--maps[aria-pressed='true'] {
+  border-color: var(--mint);
+  background: rgba(34, 196, 142, 0.1);
+  box-shadow: 0 0 18px rgba(34, 196, 142, 0.16);
+}
+
+/* ---------- status line ---------- */
+.page--mcp .mcp-statusline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+.page--mcp .mcp-count {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--on-stage);
+}
+
+.page--mcp .mcp-notetools {
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+.page--mcp .mcp-notetools[hidden] {
+  display: none;
+}
+
+/* ---------- the reply panel (always present; the fixed min-height
+   keeps the stage the same size in every state) ---------- */
+.page--mcp .mcp-reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 96px;
+  margin-top: var(--space-4);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+.page--mcp .mcp-reply-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--mcp .mcp-reply-text {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* the placeholder tone until the app is asked */
+.page--mcp .mcp-reply-text--empty {
+  color: var(--on-stage-soft);
+}
+
+/* ---------- stage bar ---------- */
+.page--mcp .mcp-stage .stage-bar {
+  margin-top: auto;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--mcp .mcp-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}

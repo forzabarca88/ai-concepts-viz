@@ -1,0 +1,316 @@
+/* ============================================================
+   Data ("01 · Core ideas") — the user-run filter console.
+   Every rule is scoped under .page--data.
+   ============================================================ */
+
+/* ---------- stage + side panel ---------- */
+.page--data .data-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.page--data .data-sub {
+  margin-top: var(--space-2);
+  max-width: 52ch;
+  font-size: var(--text-small);
+  color: var(--on-stage-soft);
+}
+
+/* The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it. */
+.page--data .data-canvas-wrap {
+  height: 400px;
+  margin-top: var(--space-4);
+}
+
+/* ---------- decision panel (state-invariant height) ---------- */
+/* min-height is fixed so the stage never resizes between the
+   question/options state and the verdict state. */
+.page--data .data-panel {
+  min-height: 224px;
+  margin-top: var(--space-4);
+}
+
+.page--data .data-question {
+  max-width: 56ch;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--on-stage);
+}
+
+.page--data .data-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.page--data .data-option {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--stage-2);
+  color: var(--on-stage);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.page--data .data-option:hover {
+  border-color: rgba(148, 160, 185, 0.4);
+}
+
+.page--data .data-option:active {
+  transform: translateY(1px);
+}
+
+.page--data .data-option-label {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.page--data .data-option-desc {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-small);
+  line-height: 1.45;
+  color: var(--on-stage-soft);
+}
+
+/* the re-selectable current choice (Back flow) */
+.page--data .data-option[aria-pressed='true'] {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 24px rgba(255, 176, 32, 0.22);
+}
+
+.page--data .data-option[aria-pressed='true'] .data-option-label {
+  color: var(--amber-ink);
+}
+
+/* the verdict state */
+.page--data .data-verdict {
+  max-width: 56ch;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--on-stage);
+}
+
+.page--data .data-quality {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.page--data .data-quality-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--mint);
+  white-space: nowrap;
+}
+
+.page--data .data-quality-track {
+  display: block;
+  width: 12rem;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(148, 160, 185, 0.18);
+}
+
+.page--data .data-quality-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--mint));
+  box-shadow: 0 0 16px rgba(34, 196, 142, 0.45);
+  transition: width var(--dur-med) var(--ease-out);
+}
+
+/* ---------- ring labels (DOM mirror of the 3D rings) ---------- */
+.page--data .data-rings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+}
+
+.page--data .data-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--on-stage-soft);
+  opacity: 0.5;
+  transition:
+    color var(--dur-med) var(--ease-out),
+    opacity var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-ring-dot {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.page--data .data-ring--passed {
+  opacity: 0.9;
+  color: var(--mint);
+}
+
+.page--data .data-ring--active {
+  opacity: 1;
+  color: var(--amber);
+}
+
+.page--data .data-status {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* the author `display` rules above (.data-options flex, .btn
+   inline-flex) outrank the UA stylesheet's [hidden] { display: none } —
+   re-assert hiding so state-swapped elements are truly gone */
+.page--data .data-question[hidden],
+.page--data .data-options[hidden],
+.page--data .data-verdict[hidden],
+.page--data .data-quality[hidden],
+.page--data .data-back[hidden] {
+  display: none;
+}
+
+/* ---------- side panel: counters + reading mix ---------- */
+.page--data .data-side {
+  padding: var(--space-6);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.page--data .data-side-title {
+  font-size: var(--text-h3);
+  margin-bottom: var(--space-4);
+}
+
+.page--data .data-counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-6);
+}
+
+.page--data .data-counter {
+  opacity: 0.35;
+  transition: opacity var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-counter--active {
+  opacity: 1;
+}
+
+.page--data .data-counters .metric-value {
+  font-size: 1.625rem;
+}
+
+.page--data .data-mix {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(16, 20, 24, 0.08);
+}
+
+.page--data .data-mix-title {
+  font-size: var(--text-h3);
+}
+
+.page--data .data-mix-sub {
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  color: var(--ink-soft);
+}
+
+.page--data .data-mix-row {
+  display: grid;
+  grid-template-columns: auto 5.5rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.page--data .data-mix-name {
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+
+.page--data .data-mix-row--off .data-mix-name {
+  color: var(--ink-faint);
+}
+
+.page--data .data-mix-track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+}
+
+.page--data .data-mix-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width var(--dur-med) var(--ease-out);
+}
+
+.page--data .data-mix-row.data-fill--books .data-mix-fill {
+  background: var(--amber);
+}
+
+.page--data .data-mix-row.data-fill--code .data-mix-fill {
+  background: var(--mint);
+}
+
+.page--data .data-mix-row.data-fill--web .data-mix-fill {
+  background: var(--accent-glow);
+}
+
+.page--data .data-mix-row.data-fill--chats .data-mix-fill {
+  background: var(--on-stage-soft);
+}
+
+.page--data .data-mix-pct {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+  min-width: 3ch;
+  text-align: right;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 48rem) {
+  .page--data .data-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page--data .data-canvas-wrap {
+    height: 320px;
+  }
+}
