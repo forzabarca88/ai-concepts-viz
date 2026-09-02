@@ -1,25 +1,4 @@
-import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
-
-/**
- * Scroll a selector to sit just below the sticky header (deterministic
- * offset — header height + 24px — so every capture frames the same
- * slice of the page). Playwright clicks/keys can auto-scroll the target
- * into view and re-frame the page, so this is re-applied after every
- * click or keypress before capturing.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
+import { test, expect, scrollToSelector } from './helper';
 
 test.describe('parameters — pick what it learns (knob cloud, 3D)', () => {
   test('initial state', async ({ page, shot }) => {

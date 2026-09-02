@@ -218,8 +218,18 @@ function createFallbackNote(): HTMLElement {
 /**
  * A 64×64 radial glow sprite (white core, alpha 1 → transparent edge).
  * Fully procedural — no image assets, no randomness.
+ *
+ * The texture is a lazily-created MODULE-LEVEL singleton: every
+ * `makeGlowPoints` shares this one tiny GPU texture instead of each
+ * call minting a fresh `CanvasTexture` that no teardown would ever
+ * release (`Material.dispose()` does not dispose `.map`). It is
+ * deliberately never disposed on a single section's teardown — it is
+ * shared by every stage and costs one 64×64 upload per renderer.
  */
-export function makeGlowSprite(): THREE.Texture {
+let sharedGlowSprite: THREE.Texture | null = null;
+
+function glowSpriteTexture(): THREE.Texture {
+  if (sharedGlowSprite) return sharedGlowSprite;
   const size = 64;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -235,7 +245,13 @@ export function makeGlowSprite(): THREE.Texture {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
   }
-  return new THREE.CanvasTexture(canvas);
+  sharedGlowSprite = new THREE.CanvasTexture(canvas);
+  return sharedGlowSprite;
+}
+
+/** Public API — returns the shared glow-sprite texture (created once). */
+export function makeGlowSprite(): THREE.Texture {
+  return glowSpriteTexture();
 }
 
 /**
@@ -253,7 +269,7 @@ export function makeGlowPoints(
   if (colors) geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
     size,
-    map: makeGlowSprite(),
+    map: glowSpriteTexture(), // shared singleton — never minted per call
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { within } from '@testing-library/dom';
 import { mountPage } from '../../test/mountPage';
 import { page } from './page';
@@ -20,18 +20,22 @@ const appBtn = (root: HTMLElement, name: string) =>
   within(root).getByRole('button', { name }) as HTMLButtonElement;
 const plugBtn = (root: HTMLElement, name: string) =>
   within(root).getByRole('button', { name }) as HTMLButtonElement;
+const askBtn = (root: HTMLElement) =>
+  within(root).getByRole('button', { name: 'Ask the app' }) as HTMLButtonElement;
+const unplugBtn = (root: HTMLElement) =>
+  within(root).getByRole('button', { name: 'Unplug all' }) as HTMLButtonElement;
 
 const countLine = (root: HTMLElement) =>
   root.querySelector<HTMLElement>('.mcp-count')?.textContent ?? '';
 const noteEl = (root: HTMLElement) => root.querySelector<HTMLElement>('.mcp-notetools')!;
-const svgEl = (root: HTMLElement) => root.querySelector<SVGElement>('.mc-svg')!;
-const dockedCount = (root: HTMLElement) => svgEl(root).querySelectorAll('.mc-docked').length;
-const hasCable = (root: HTMLElement, id: string) =>
-  svgEl(root).querySelector(`.mc-cable--${id}`) !== null;
+const replyText = (root: HTMLElement) =>
+  root.querySelector<HTMLElement>('.mcp-reply-text')?.textContent ?? '';
 
 const appCard = (root: HTMLElement, name: string) => appBtn(root, name).closest('.mcp-app')!;
 const appChips = (root: HTMLElement, name: string): string[] =>
   Array.from(appCard(root, name).querySelectorAll('.mcp-chip')).map((c) => c.textContent ?? '');
+
+const REPLY_EMPTY = 'Nothing to ask yet — plug something in.';
 
 describe('mcp page', () => {
   it('renders the eyebrow, h1 and lede', () => {
@@ -57,7 +61,7 @@ describe('mcp page', () => {
     }
   });
 
-  it('starts on ChatBot with an empty socket and the no-tools note', () => {
+  it('starts on ChatBot: empty sockets, no tools, Ask disabled, jsdom fallback', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
@@ -71,7 +75,10 @@ describe('mcp page', () => {
     expect(countLine(root)).toBe('0 tools ready');
     expect(noteEl(root).hidden).toBe(false);
     expect(noteEl(root).textContent).toBe('No tools — just words.');
-    expect(dockedCount(root)).toBe(0);
+    expect(askBtn(root).disabled).toBe(true);
+    expect(replyText(root)).toBe(REPLY_EMPTY);
+    // the 3D socket falls back to a note in jsdom (no WebGL)
+    expect(root.querySelector('.viz-fallback')).toBeTruthy();
   });
 });
 
@@ -107,7 +114,6 @@ describe('app picker', () => {
     expect(noteEl(root).hidden).toBe(false);
     expect(plugBtn(root, 'Files').getAttribute('aria-pressed')).toBe('false');
     expect(appChips(root, 'CodePal')).toEqual([]);
-    expect(dockedCount(root)).toBe(0);
 
     // ACT — back to ChatBot
     appBtn(root, 'ChatBot').click();
@@ -124,7 +130,7 @@ describe('plug clicks', () => {
     ['Files', 'files'],
     ['Calendar', 'calendar'],
     ['Maps', 'maps'],
-  ] as const)('clicking %s docks it, draws its cable and adds a chip', (name, id) => {
+  ] as const)('clicking %s docks it and adds a chip', (name, _id) => {
     // ARRANGE
     const m = mount();
     const root = m.root;
@@ -132,10 +138,8 @@ describe('plug clicks', () => {
     // ACT
     plugBtn(root, name).click();
 
-    // ASSERT — plug docked in the SVG, cable drawn, chip on the active app, count up
+    // ASSERT — plug docked (aria-pressed mirror), chip on the active app, count up
     expect(plugBtn(root, name).getAttribute('aria-pressed')).toBe('true');
-    expect(dockedCount(root)).toBe(1);
-    expect(hasCable(root, id)).toBe(true);
     expect(appChips(root, 'ChatBot')).toEqual([`connected: ${name}`]);
     // the chip row is announced as a named list (aria-label on a bare span
     // is ignored by assistive tech)
@@ -158,10 +162,9 @@ describe('plug clicks', () => {
     plugBtn(root, 'Maps').click();
 
     // ASSERT
-    expect(dockedCount(root)).toBe(3);
-    expect(hasCable(root, 'files')).toBe(true);
-    expect(hasCable(root, 'calendar')).toBe(true);
-    expect(hasCable(root, 'maps')).toBe(true);
+    expect(plugBtn(root, 'Files').getAttribute('aria-pressed')).toBe('true');
+    expect(plugBtn(root, 'Calendar').getAttribute('aria-pressed')).toBe('true');
+    expect(plugBtn(root, 'Maps').getAttribute('aria-pressed')).toBe('true');
     expect(appChips(root, 'ChatBot')).toEqual(['connected: Files', 'connected: Calendar', 'connected: Maps']);
     expect(countLine(root)).toBe('3 tools ready');
     expect(noteEl(root).hidden).toBe(true);
@@ -173,38 +176,159 @@ describe('plug clicks', () => {
     const root = m.root;
     plugBtn(root, 'Files').click();
     plugBtn(root, 'Calendar').click();
-    expect(dockedCount(root)).toBe(2);
 
     // ACT
     plugBtn(root, 'Files').click();
 
     // ASSERT
     expect(plugBtn(root, 'Files').getAttribute('aria-pressed')).toBe('false');
-    expect(hasCable(root, 'files')).toBe(false);
-    expect(hasCable(root, 'calendar')).toBe(true);
+    expect(plugBtn(root, 'Calendar').getAttribute('aria-pressed')).toBe('true');
     expect(appChips(root, 'ChatBot')).toEqual(['connected: Calendar']);
     expect(countLine(root)).toBe('1 tool ready');
   });
 });
 
+describe('ask the app', () => {
+  it('plugging a server enables Ask, and asking prints the exact reply', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT — dock Files; Ask unlocks but the reply stays at the placeholder
+    plugBtn(root, 'Files').click();
+    expect(askBtn(root).disabled).toBe(false);
+    expect(appChips(root, 'ChatBot')).toEqual(['connected: Files']);
+    expect(countLine(root)).toBe('1 tool ready');
+    expect(replyText(root)).toBe(REPLY_EMPTY);
+
+    // ACT — ask
+    askBtn(root).click();
+
+    // ASSERT
+    expect(replyText(root)).toBe('ChatBot asked its tools: the hike photos are in Hike 2024.zip.');
+  });
+
+  it('the reply is live: docking another server re-computes it in SERVERS order', () => {
+    // ARRANGE — ask with only Calendar docked (clause order is SERVERS
+    // order, not plug order)
+    const m = mount();
+    const root = m.root;
+    plugBtn(root, 'Calendar').click();
+    askBtn(root).click();
+    expect(replyText(root)).toBe('ChatBot asked its tools: Saturday is free.');
+
+    // ACT — dock Files after the ask
+    plugBtn(root, 'Files').click();
+
+    // ASSERT — live re-compute; the Files clause comes FIRST (SERVERS order)
+    expect(replyText(root)).toBe(
+      'ChatBot asked its tools: the hike photos are in Hike 2024.zip; Saturday is free.',
+    );
+
+    // ACT — dock the third server
+    plugBtn(root, 'Maps').click();
+
+    // ASSERT — all three clauses, files → calendar → maps
+    expect(replyText(root)).toBe(
+      'ChatBot asked its tools: the hike photos are in Hike 2024.zip; Saturday is free; the trail is 8.4 miles.',
+    );
+  });
+
+  it('undocking a server after the ask re-computes the reply live', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+    plugBtn(root, 'Files').click();
+    plugBtn(root, 'Maps').click();
+    askBtn(root).click();
+    expect(replyText(root)).toBe(
+      'ChatBot asked its tools: the hike photos are in Hike 2024.zip; the trail is 8.4 miles.',
+    );
+
+    // ACT — unplug Files
+    plugBtn(root, 'Files').click();
+
+    // ASSERT — the reply follows the docked set
+    expect(replyText(root)).toBe('ChatBot asked its tools: the trail is 8.4 miles.');
+  });
+
+  it('each app keeps its own ask state and its own reply verb', () => {
+    // ARRANGE — ask ChatBot with Files docked
+    const m = mount();
+    const root = m.root;
+    plugBtn(root, 'Files').click();
+    askBtn(root).click();
+    expect(replyText(root)).toBe('ChatBot asked its tools: the hike photos are in Hike 2024.zip.');
+
+    // ACT — look at CodePal
+    appBtn(root, 'CodePal').click();
+
+    // ASSERT — empty chips, Ask disabled, placeholder
+    expect(appChips(root, 'CodePal')).toEqual([]);
+    expect(askBtn(root).disabled).toBe(true);
+    expect(plugBtn(root, 'Files').getAttribute('aria-pressed')).toBe('false');
+    expect(replyText(root)).toBe(REPLY_EMPTY);
+
+    // ACT — dock Calendar and ask CodePal
+    plugBtn(root, 'Calendar').click();
+    askBtn(root).click();
+
+    // ASSERT — CodePal phrases it its way
+    expect(replyText(root)).toBe('CodePal checked its tools: Saturday is free.');
+
+    // ACT — back to ChatBot
+    appBtn(root, 'ChatBot').click();
+
+    // ASSERT — its reply is still live
+    expect(replyText(root)).toBe('ChatBot asked its tools: the hike photos are in Hike 2024.zip.');
+  });
+
+  it('Unplug all resets the ask: re-plugging needs a fresh Ask', () => {
+    // ARRANGE — asked with Files docked
+    const m = mount();
+    const root = m.root;
+    plugBtn(root, 'Files').click();
+    askBtn(root).click();
+    expect(replyText(root)).toBe('ChatBot asked its tools: the hike photos are in Hike 2024.zip.');
+
+    // ACT
+    unplugBtn(root).click();
+
+    // ASSERT — zero tools + placeholder
+    expect(countLine(root)).toBe('0 tools ready');
+    expect(noteEl(root).hidden).toBe(false);
+    expect(askBtn(root).disabled).toBe(true);
+    expect(replyText(root)).toBe(REPLY_EMPTY);
+
+    // ACT — plug Files again: the reply stays at the placeholder
+    plugBtn(root, 'Files').click();
+    expect(countLine(root)).toBe('1 tool ready');
+    expect(replyText(root)).toBe(REPLY_EMPTY);
+
+    // ACT — ask again
+    askBtn(root).click();
+
+    // ASSERT
+    expect(replyText(root)).toBe('ChatBot asked its tools: the hike photos are in Hike 2024.zip.');
+  });
+});
+
 describe('unplug all', () => {
-  it('clears the active app: cables, chips and count go to zero', () => {
+  it('clears the active app: chips and count go to zero', () => {
     // ARRANGE — dock two servers
     const m = mount();
     const root = m.root;
     plugBtn(root, 'Files').click();
     plugBtn(root, 'Calendar').click();
     expect(countLine(root)).toBe('2 tools ready');
-    expect(dockedCount(root)).toBe(2);
 
     // ACT
-    within(root).getByRole('button', { name: 'Unplug all' }).click();
+    unplugBtn(root).click();
 
     // ASSERT
     expect(countLine(root)).toBe('0 tools ready');
     expect(noteEl(root).hidden).toBe(false);
     expect(noteEl(root).textContent).toBe('No tools — just words.');
-    expect(dockedCount(root)).toBe(0);
     expect(appChips(root, 'ChatBot')).toEqual([]);
     for (const name of ['Files', 'Calendar', 'Maps']) {
       expect(plugBtn(root, name).getAttribute('aria-pressed')).toBe('false');
@@ -221,12 +345,35 @@ describe('unplug all', () => {
     expect(countLine(root)).toBe('1 tool ready');
 
     // ACT — unplug on CodePal
-    within(root).getByRole('button', { name: 'Unplug all' }).click();
+    unplugBtn(root).click();
 
     // ASSERT — CodePal is empty, ChatBot still has Files
     expect(countLine(root)).toBe('0 tools ready');
     appBtn(root, 'ChatBot').click();
     expect(countLine(root)).toBe('1 tool ready');
     expect(appChips(root, 'ChatBot')).toEqual(['connected: Files']);
+  });
+});
+
+describe('window listener hygiene', () => {
+  it('removes its window resize listener on unmount (no leak on the no-WebGL path)', () => {
+    // ARRANGE — the kit registers exactly one window resize listener per
+    // mount (removed again on dispose); the section adds none of its own.
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    // ACT — three mount/unmount cycles.
+    for (let i = 0; i < 3; i += 1) {
+      const m = mountPage(page);
+      m.unmount();
+    }
+    const adds = addSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    const removes = removeSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+
+    // ASSERT — balanced: one removal for every registration (3/3).
+    expect(adds).toBe(3);
+    expect(removes).toBe(3);
   });
 });

@@ -1,30 +1,14 @@
 import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
-
-/**
- * Scroll a selector to sit just below the sticky header (deterministic
- * offset — header height + 24px — so every capture frames the same
- * slice of the page). Playwright clicks can auto-scroll the target into
- * view and re-frame the page, so this is re-applied after every
- * interaction before capturing.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
+import { test, expect, scrollToSelector } from './helper';
 
 const appBtn = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
 const plugBtn = (page: Page, name: string) => page.getByRole('button', { name, exact: true });
+const askBtn = (page: Page) => page.getByRole('button', { name: 'Ask the app', exact: true });
 const unplugBtn = (page: Page) => page.getByRole('button', { name: 'Unplug all', exact: true });
 const countLine = (page: Page) => page.locator('.mcp-count');
+const replyText = (page: Page) => page.locator('.mcp-reply-text');
+
+const REPLY_EMPTY = 'Nothing to ask yet — plug something in.';
 
 test.describe('mcp — the USB-C of AI', () => {
   test('initial state — nothing plugged in', async ({ page, shot }) => {
@@ -33,56 +17,50 @@ test.describe('mcp — the USB-C of AI', () => {
     await expect(appBtn(page, 'ChatBot')).toHaveAttribute('aria-pressed', 'true');
     await expect(countLine(page)).toHaveText('0 tools ready');
     await expect(page.getByText('No tools — just words.', { exact: true })).toBeVisible();
+    await expect(askBtn(page)).toBeDisabled();
+    await expect(replyText(page)).toHaveText(REPLY_EMPTY);
     await shot('mcp-initial.png');
   });
 
-  test('switch app — CodePal is lit', async ({ page, shot }) => {
+  test('dock Files, then ask the app', async ({ page, shot }) => {
     await page.goto('/#/mcp');
     await scrollToSelector(page, '.mcp-stage');
 
-    await appBtn(page, 'CodePal').click();
-    await expect(appBtn(page, 'CodePal')).toHaveAttribute('aria-pressed', 'true');
-    await expect(appBtn(page, 'ChatBot')).toHaveAttribute('aria-pressed', 'false');
-    await expect(countLine(page)).toHaveText('0 tools ready');
-    await scrollToSelector(page, '.mcp-stage');
-    await shot('mcp-app-codepal.png');
-  });
-
-  test('dock Files — it plugs in, the cable draws, a chip appears', async ({ page, shot }) => {
-    await page.goto('/#/mcp');
-    await scrollToSelector(page, '.mcp-stage');
-
+    // --- mcp-plug-files: the plug docks, a chip appears, Ask unlocks ---
     await plugBtn(page, 'Files').click();
     await expect(plugBtn(page, 'Files')).toHaveAttribute('aria-pressed', 'true');
-    // the docked plug + its cable are in the final state in the SVG
-    // (a bare horizontal <line> has a 0-height box, so assert by count)
-    await expect(page.locator('.mc-cable--files')).toHaveCount(1);
-    await expect(page.locator('.mc-docked')).toHaveCount(1);
     await expect(page.getByText('connected: Files', { exact: true })).toBeVisible();
     await expect(countLine(page)).toHaveText('1 tool ready');
     await expect(page.getByText('No tools — just words.', { exact: true })).toBeHidden();
+    await expect(askBtn(page)).toBeEnabled();
+    await expect(replyText(page)).toHaveText(REPLY_EMPTY);
     await scrollToSelector(page, '.mcp-stage');
-    await shot('mcp-docked-files.png');
+    await shot('mcp-plug-files.png');
+
+    // --- mcp-ask: the app replies through its docked tool ---
+    await askBtn(page).click();
+    await expect(replyText(page)).toHaveText(
+      'ChatBot asked its tools: the hike photos are in Hike 2024.zip.',
+    );
+    await scrollToSelector(page, '.mcp-stage');
+    await shot('mcp-ask.png');
   });
 
-  test('dock all three — any tool fits the same socket', async ({ page, shot }) => {
+  test('CodePal checks its tools', async ({ page, shot }) => {
     await page.goto('/#/mcp');
     await scrollToSelector(page, '.mcp-stage');
 
-    await plugBtn(page, 'Files').click();
+    // switch to CodePal, dock Calendar, ask
+    await appBtn(page, 'CodePal').click();
+    await expect(appBtn(page, 'CodePal')).toHaveAttribute('aria-pressed', 'true');
+    await expect(askBtn(page)).toBeDisabled();
     await plugBtn(page, 'Calendar').click();
-    await plugBtn(page, 'Maps').click();
-
-    await expect(page.locator('.mc-cable--files')).toHaveCount(1);
-    await expect(page.locator('.mc-cable--calendar')).toHaveCount(1);
-    await expect(page.locator('.mc-cable--maps')).toHaveCount(1);
-    await expect(page.locator('.mc-docked')).toHaveCount(3);
-    await expect(page.getByText('connected: Files', { exact: true })).toBeVisible();
     await expect(page.getByText('connected: Calendar', { exact: true })).toBeVisible();
-    await expect(page.getByText('connected: Maps', { exact: true })).toBeVisible();
-    await expect(countLine(page)).toHaveText('3 tools ready');
+    await expect(countLine(page)).toHaveText('1 tool ready');
+    await askBtn(page).click();
+    await expect(replyText(page)).toHaveText('CodePal checked its tools: Saturday is free.');
     await scrollToSelector(page, '.mcp-stage');
-    await shot('mcp-docked-all.png');
+    await shot('mcp-codepal.png');
   });
 
   test('unplug all — back to just words', async ({ page, shot }) => {
@@ -95,11 +73,12 @@ test.describe('mcp — the USB-C of AI', () => {
 
     await unplugBtn(page).click();
     await expect(countLine(page)).toHaveText('0 tools ready');
-    await expect(page.locator('.mc-cable--files')).toHaveCount(0);
-    await expect(page.locator('.mc-cable--calendar')).toHaveCount(0);
     await expect(page.getByText('connected: Files', { exact: true })).toBeHidden();
+    await expect(page.getByText('connected: Calendar', { exact: true })).toBeHidden();
     await expect(page.getByText('No tools — just words.', { exact: true })).toBeVisible();
+    await expect(askBtn(page)).toBeDisabled();
+    await expect(replyText(page)).toHaveText(REPLY_EMPTY);
     await scrollToSelector(page, '.mcp-stage');
-    await shot('mcp-unplugged.png');
+    await shot('mcp-unplug.png');
   });
 });

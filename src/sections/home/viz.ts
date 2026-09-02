@@ -167,17 +167,6 @@ export function mountNextToken(root: HTMLElement): () => void {
     }
   };
 
-  const kit = createStageKit({
-    wrapper: canvasWrap,
-    stageOpts: {
-      seed: 20260207,
-      camera: { position: [0, 0, 9], fov: 40 },
-      alpha: true,
-    },
-    build: (h) => buildHeroScene(h),
-    reapply: (refs) => applyHero(refs as HeroRefs | null),
-  });
-
   const renderHero = (): void => {
     applyHero(kit.refs as HeroRefs | null);
     kit.render();
@@ -303,7 +292,23 @@ export function mountNextToken(root: HTMLElement): () => void {
   });
 
   stage.append(canvasWrap, head, sentence, body, bar);
+
+  // The stage is in the document before the kit is created, so the
+  // wrapper already has its final laid-out size (clientWidth/Height)
+  // when the renderer buffer is sized — the hero orbs/ring render at
+  // the stage's real aspect instead of the 960×540 detached fallback.
   root.appendChild(stage);
+
+  const kit = createStageKit({
+    wrapper: canvasWrap,
+    stageOpts: {
+      seed: 20260207,
+      camera: { position: [0, 0, 9], fov: 40 },
+      alpha: true,
+    },
+    build: (h) => buildHeroScene(h),
+    reapply: (refs) => applyHero(refs as HeroRefs | null),
+  });
 
   renderSentence();
   updateScore();

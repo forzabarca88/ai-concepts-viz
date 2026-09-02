@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { within } from '@testing-library/dom';
 import { mountPage } from '../../test/mountPage';
 import { page } from './page';
@@ -20,13 +20,33 @@ const statusText = (root: HTMLElement) =>
 const countText = (root: HTMLElement) =>
   root.querySelector('.skill-inv-count')?.textContent ?? '';
 
+const teachCardFor = (root: HTMLElement, name: string) =>
+  Array.from(root.querySelectorAll('.skill-teach-card')).find((c) =>
+    (c.textContent ?? '').includes(name),
+  ) as HTMLElement;
+
+const teachIn = (root: HTMLElement, name: string) =>
+  within(teachCardFor(root, name)).getByRole('button', { name: 'Teach' }) as HTMLButtonElement;
+
 const cardFor = (root: HTMLElement, name: string) =>
   Array.from(root.querySelectorAll('.skill-card')).find((c) =>
     (c.textContent ?? '').includes(name),
   );
 
-const teachButton = (root: HTMLElement) =>
-  within(root).getByRole('button', { name: 'Teach a skill' }) as HTMLButtonElement;
+const selectTask = (root: HTMLElement, name: RegExp) =>
+  within(root).getByRole('button', { name }) as HTMLButtonElement;
+
+const tryTask = (root: HTMLElement) =>
+  within(root).queryByRole('button', { name: 'Try the task' }) as HTMLButtonElement | null;
+
+const TRAIL_RESULT =
+  'It opened three tabs, compared reviews and settled on: Maple Ridge, 8.4 miles, one good chocolate shop at the trailhead.';
+
+/** The single visible Done badge (hidden ones exist on the other task cards). */
+const doneBadge = (root: HTMLElement) =>
+  root.querySelector('.skill-task-done:not([hidden])');
+
+const RESULTS_EMPTY = 'No results yet — teach it a skill, pick a task, then try it.';
 
 describe('skills page', () => {
   it('renders the eyebrow, h1 and lede', () => {
@@ -56,59 +76,71 @@ describe('skills page', () => {
     }
   });
 
-  it('starts empty: no skills, no task, idle readiness line', () => {
+  it('starts empty: unpressed teach cards, empty inventory, results placeholder, jsdom fallback', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
 
     // ASSERT
+    expect(root.querySelectorAll('.skill-teach-card')).toHaveLength(3);
+    for (const btn of root.querySelectorAll<HTMLButtonElement>('.skill-teach')) {
+      expect(btn.getAttribute('aria-pressed')).toBe('false');
+    }
     expect(within(root).getByText('No skills yet — just a very smart mind')).toBeTruthy();
-    expect(root.querySelectorAll('.skill-card')).toHaveLength(0);
+    expect(countText(root)).toBe('0 / 3');
     expect(root.querySelectorAll('.skill-task')).toHaveLength(3);
     expect(root.querySelectorAll('.skill-task[aria-pressed="true"]')).toHaveLength(0);
     expect(statusText(root)).toBe('Pick a task to check.');
-    expect(countText(root)).toBe('0 / 3');
+    expect(tryTask(root)).toBeNull();
+    expect(within(root).getByText(RESULTS_EMPTY, { exact: true })).toBeTruthy();
+    expect(within(root).getByText('Teach a skill — pick which one first.')).toBeTruthy();
+    expect(root.querySelector('.viz-fallback')).toBeTruthy();
   });
 });
 
-describe('teach a skill', () => {
-  it('cycles the three fixed skills in order, then locks', () => {
+describe('teach cards', () => {
+  it('teaching a skill lights a chest light and adds the Learned! badge', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
-    const teach = teachButton(root);
+    const teach = teachIn(root, 'Browse the web');
 
-    // ACT — press 1
+    // ACT
     teach.click();
-    expect(within(root).getByText('Browse the web', { exact: true })).toBeTruthy();
-    expect(within(root).getByText('Learned!', { exact: true })).toBeTruthy();
-    expect((root.querySelector('.skill-empty') as HTMLElement).hidden).toBe(true);
+
+    // ASSERT
+    expect(teach.getAttribute('aria-pressed')).toBe('true');
     expect(countText(root)).toBe('1 / 3');
+    expect(root.querySelectorAll('.sk-light--on')).toHaveLength(1);
+    expect(within(root).getByText('Learned!', { exact: true })).toBeTruthy();
+    expect(within(root).getByText('The backpack holds 1 of 3 skills.')).toBeTruthy();
+  });
 
-    // ACT — press 2
-    teach.click();
-    expect(within(root).getByText('Write code', { exact: true })).toBeTruthy();
-    expect(countText(root)).toBe('2 / 3');
+  it('teaching all three fills the backpack and the hint', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
 
-    // ACT — press 3
-    teach.click();
-    expect(within(root).getByText('Summarize', { exact: true })).toBeTruthy();
+    // ACT — teach in an arbitrary order (the user picks)
+    teachIn(root, 'Summarize').click();
+    teachIn(root, 'Browse the web').click();
+    expect(within(root).getByText('The backpack holds 2 of 3 skills.')).toBeTruthy();
+    teachIn(root, 'Write code').click();
+
+    // ASSERT
     expect(countText(root)).toBe('3 / 3');
-
-    // ASSERT — capped: the button locks
-    expect(teach.disabled).toBe(true);
+    expect(root.querySelectorAll('.sk-light--on')).toHaveLength(3);
+    expect(within(root).getByText('All 3 skills learned — the backpack is full.')).toBeTruthy();
   });
 });
 
 describe('task picker', () => {
-  it('a task whose skill is learned reads Ready! 🎒 and glows the card', () => {
+  it('a task whose skill is learned reads Ready! 🎒, offers Try the task, and glows the card', () => {
     // ARRANGE — learn Browse the web (the trail task needs it)
     const m = mount();
     const root = m.root;
-    teachButton(root).click();
-    const task = within(root).getByRole('button', {
-      name: /Find Portland's best hiking trail/,
-    });
+    teachIn(root, 'Browse the web').click();
+    const task = selectTask(root, /Find Portland's best hiking trail/);
 
     // ACT
     task.click();
@@ -116,22 +148,26 @@ describe('task picker', () => {
     // ASSERT
     expect(task.getAttribute('aria-pressed')).toBe('true');
     expect(statusText(root)).toBe('Ready! 🎒');
+    const tryBtn = tryTask(root);
+    expect(tryBtn).not.toBeNull();
+    expect(tryBtn?.disabled).toBe(false);
     const needed = root.querySelector('.skill-card--needed');
     expect(needed?.textContent).toContain('Browse the web');
   });
 
-  it('a task whose skill is not learned reads Not ready + Missing: <skill>', () => {
+  it('a task whose skill is not learned reads Not ready + Missing: <skill>, no Try button', () => {
     // ARRANGE — only Browse is learned; the script task needs Write code
     const m = mount();
     const root = m.root;
-    teachButton(root).click();
+    teachIn(root, 'Browse the web').click();
 
     // ACT
-    within(root).getByRole('button', { name: /Write a script to rename files/ }).click();
+    selectTask(root, /Write a script to rename files/).click();
 
     // ASSERT
     expect(statusText(root)).toBe('Not ready');
     expect(within(root).getByText('Missing: Write code', { exact: true })).toBeTruthy();
+    expect(tryTask(root)).toBeNull();
     expect(root.querySelector('.skill-card--needed')).toBeNull();
   });
 
@@ -139,10 +175,8 @@ describe('task picker', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
-    teachButton(root).click();
-    const task = within(root).getByRole('button', {
-      name: /Find Portland's best hiking trail/,
-    });
+    teachIn(root, 'Browse the web').click();
+    const task = selectTask(root, /Find Portland's best hiking trail/);
 
     // ACT — select, then deselect
     task.click();
@@ -152,6 +186,50 @@ describe('task picker', () => {
     // ASSERT
     expect(task.getAttribute('aria-pressed')).toBe('false');
     expect(statusText(root)).toBe('Pick a task to check.');
+    expect(tryTask(root)).toBeNull();
+  });
+});
+
+describe('try the task', () => {
+  it('a ready task prints its exact result line, earns Done ✓ and locks the button', () => {
+    // ARRANGE — Browse learned, trail task selected (Ready)
+    const m = mount();
+    const root = m.root;
+    teachIn(root, 'Browse the web').click();
+    selectTask(root, /Find Portland's best hiking trail/).click();
+    const tryBtn = tryTask(root) as HTMLButtonElement;
+    expect(tryBtn.disabled).toBe(false);
+
+    // ACT
+    tryBtn.click();
+
+    // ASSERT
+    expect(within(root).getByText(TRAIL_RESULT, { exact: true })).toBeTruthy();
+    expect(doneBadge(root)?.textContent).toBe('Done ✓');
+    expect(tryBtn.disabled).toBe(true);
+    expect((root.querySelector('.skill-results-empty') as HTMLElement).hidden).toBe(true);
+  });
+
+  it('forgetting the skill un-readies the task and clears its result line', () => {
+    // ARRANGE — tried the trail task, so its result line is on display
+    const m = mount();
+    const root = m.root;
+    teachIn(root, 'Browse the web').click();
+    selectTask(root, /Find Portland's best hiking trail/).click();
+    (tryTask(root) as HTMLButtonElement).click();
+    expect(within(root).getByText(TRAIL_RESULT, { exact: true })).toBeTruthy();
+
+    // ACT — forget the skill the task needs
+    within(cardFor(root, 'Browse the web') as HTMLElement)
+      .getByRole('button', { name: 'Forget' })
+      .click();
+
+    // ASSERT — readiness flipped, the result line and badge are gone
+    expect(statusText(root)).toBe('Not ready');
+    expect(within(root).getByText('Missing: Browse the web', { exact: true })).toBeTruthy();
+    expect(within(root).queryByText(TRAIL_RESULT, { exact: true })).toBeNull();
+    expect(doneBadge(root)).toBeNull();
+    expect(within(root).getByText(RESULTS_EMPTY, { exact: true })).toBeTruthy();
   });
 });
 
@@ -160,15 +238,14 @@ describe('forget a skill', () => {
     // ARRANGE — Browse learned, trail task selected (Ready)
     const m = mount();
     const root = m.root;
-    const teach = teachButton(root);
-    teach.click();
-    within(root).getByRole('button', { name: /Find Portland's best hiking trail/ }).click();
+    teachIn(root, 'Browse the web').click();
+    selectTask(root, /Find Portland's best hiking trail/).click();
     expect(statusText(root)).toBe('Ready! 🎒');
 
     // ACT — forget the skill the selected task needs
-    const card = cardFor(root, 'Browse the web');
-    expect(card).toBeTruthy();
-    within(card as HTMLElement).getByRole('button', { name: 'Forget' }).click();
+    within(cardFor(root, 'Browse the web') as HTMLElement)
+      .getByRole('button', { name: 'Forget' })
+      .click();
 
     // ASSERT — card gone, empty state back, readiness flipped
     expect(root.querySelectorAll('.skill-card')).toHaveLength(0);
@@ -176,10 +253,10 @@ describe('forget a skill', () => {
     expect(statusText(root)).toBe('Not ready');
     expect(within(root).getByText('Missing: Browse the web', { exact: true })).toBeTruthy();
 
-    // ASSERT — the forgotten slot reopens: the cycle teaches it again
-    expect(teach.disabled).toBe(false);
+    // ASSERT — the teach card reopens: teaching it again re-readies the task
+    const teach = teachIn(root, 'Browse the web');
+    expect(teach.getAttribute('aria-pressed')).toBe('false');
     teach.click();
-    expect(within(root).getByText('Browse the web', { exact: true })).toBeTruthy();
     expect(statusText(root)).toBe('Ready! 🎒');
   });
 
@@ -187,10 +264,9 @@ describe('forget a skill', () => {
     // ARRANGE — Browse + Write code learned, script task selected (Ready)
     const m = mount();
     const root = m.root;
-    const teach = teachButton(root);
-    teach.click();
-    teach.click();
-    within(root).getByRole('button', { name: /Write a script to rename files/ }).click();
+    teachIn(root, 'Browse the web').click();
+    teachIn(root, 'Write code').click();
+    selectTask(root, /Write a script to rename files/).click();
     expect(statusText(root)).toBe('Ready! 🎒');
 
     // ACT — forget Browse (not needed by the selected task)
@@ -200,8 +276,32 @@ describe('forget a skill', () => {
 
     // ASSERT — still ready; the Write code card still glows
     expect(statusText(root)).toBe('Ready! 🎒');
-    expect(within(root).getByText('Write code', { exact: true })).toBeTruthy();
+    const codeCard = cardFor(root, 'Write code');
+    expect(codeCard).toBeTruthy();
     const needed = root.querySelector('.skill-card--needed');
     expect(needed?.textContent).toContain('Write code');
+  });
+});
+
+describe('window listener hygiene', () => {
+  it('removes its window resize listener on unmount (no leak on the no-WebGL path)', () => {
+    // ARRANGE — the kit registers exactly one window resize listener per
+    // mount (removed again on dispose); the section adds none of its own.
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    // ACT — three mount/unmount cycles.
+    for (let i = 0; i < 3; i += 1) {
+      const m = mountPage(page);
+      m.unmount();
+    }
+    const adds = addSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    const removes = removeSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+
+    // ASSERT — balanced: one removal for every registration (3/3).
+    expect(adds).toBe(3);
+    expect(removes).toBe(3);
   });
 });

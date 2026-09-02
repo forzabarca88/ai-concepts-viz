@@ -1,110 +1,97 @@
 import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
+import { test, expect, scrollToSelector } from './helper';
 
-/**
- * Scroll a selector to sit just below the sticky header (deterministic
- * offset — header height + 24px — so every capture frames the same
- * slice of the page). Playwright clicks can auto-scroll the target into
- * view and re-frame the page, so this is re-applied after every
- * interaction before capturing.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
+/** The "This one!" vote lives inside a card — scope by pair + card to
+    keep the strict-mode query unambiguous (the label appears 6 times).
+    `pair` is 1-based. */
+const voteOn = (page: Page, pair: number, card: 'a' | 'b') =>
+  page
+    .locator(`.pref-pair:nth-child(${pair}) .pref-card--${card}`)
+    .getByRole('button', { name: 'This one!' });
 
-/** The "This one!" vote lives inside a card — scope by card class to
-    keep the strict-mode query unambiguous (the label appears twice). */
-const voteOn = (page: Page, card: 'a' | 'b') =>
-  page.locator(`.pref-card--${card}`).getByRole('button', { name: 'This one!' });
-
-test.describe('preferences — showing it which answer is better', () => {
-  test('initial state', async ({ page, shot }) => {
+test.describe('preferences — label three pairs, one training run', () => {
+  test('initial state — three pairs, no votes, meter "—"', async ({ page, shot }) => {
     await page.goto('/#/preferences');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Showing it which answer is better' }),
     ).toBeVisible();
+    await expect(page.locator('.pref-pair')).toHaveCount(3);
+    await expect(page.locator('.pref-meter-value--a')).toHaveText('—');
+    await expect(page.getByRole('button', { name: 'Train on my votes' })).toBeDisabled();
+    await scrollToSelector(page, '.pref-stage');
     await shot('pref-initial.png');
   });
 
-  test('vote "This one!" on answer A', async ({ page, shot }) => {
+  test('vote A on pair 1 — "Voted A" chip, meter 100', async ({ page, shot }) => {
     await page.goto('/#/preferences');
     await scrollToSelector(page, '.pref-stage');
 
-    await voteOn(page, 'a').click();
-    await expect(page.locator('.pref-card--a')).toHaveClass(/pref-card--chosen/);
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '80');
-    await expect(page.locator('.pref-meter-value--a')).toHaveText('80');
-    await expect(page.locator('.pref-meter-value--b')).toHaveText('20');
-    await expect(page.getByRole('button', { name: 'Train on that' })).toBeEnabled();
+    await voteOn(page, 1, 'a').click();
+    await expect(
+      page.locator('.pref-pair:nth-child(1) .pref-card--a .pref-voted'),
+    ).toHaveText('Voted A');
+    await expect(page.locator('.pref-meter-value--a')).toHaveText('100');
+    await expect(page.locator('.pref-meter-value--b')).toHaveText('0');
+    await expect(page.getByRole('button', { name: 'Train on my votes' })).toBeDisabled();
 
     await scrollToSelector(page, '.pref-stage');
-    await shot('pref-voted-a.png');
+    await shot('pref-vote-1.png');
   });
 
-  test('vote "This one!" on answer B', async ({ page, shot }) => {
+  test('votes A, B, A — meter 67, train enabled', async ({ page, shot }) => {
     await page.goto('/#/preferences');
     await scrollToSelector(page, '.pref-stage');
 
-    await voteOn(page, 'b').click();
-    await expect(page.locator('.pref-card--b')).toHaveClass(/pref-card--chosen/);
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '20');
-    await expect(page.locator('.pref-meter-value--a')).toHaveText('20');
-    await expect(page.locator('.pref-meter-value--b')).toHaveText('80');
+    await voteOn(page, 1, 'a').click();
+    await voteOn(page, 2, 'b').click();
+    await voteOn(page, 3, 'a').click();
+    await expect(page.locator('.pref-meter-value--a')).toHaveText('67');
+    await expect(page.locator('.pref-meter-value--b')).toHaveText('33');
+    await expect(page.getByRole('button', { name: 'Train on my votes' })).toBeEnabled();
 
     await scrollToSelector(page, '.pref-stage');
-    await shot('pref-voted-b.png');
+    await shot('pref-vote-3.png');
   });
 
-  test('train on that — level 1, then level 2', async ({ page, shot }) => {
+  test('train on my votes — final draft + mixed note', async ({ page, shot }) => {
     await page.goto('/#/preferences');
     await scrollToSelector(page, '.pref-stage');
-    const train = page.getByRole('button', { name: 'Train on that' });
+    const train = page.getByRole('button', { name: 'Train on my votes' });
     await expect(train).toBeDisabled();
 
-    await voteOn(page, 'a').click();
+    await voteOn(page, 1, 'a').click();
+    await voteOn(page, 2, 'b').click();
+    await voteOn(page, 3, 'a').click();
     await expect(train).toBeEnabled();
 
     await train.click();
-    await expect(page.locator('.pref-level')).toHaveText('level 1');
-    await scrollToSelector(page, '.pref-stage');
-    await shot('pref-trained-1.png');
-
-    await train.click();
-    await expect(page.locator('.pref-level')).toHaveText('level 2');
+    await expect(page.locator('.pref-level')).toHaveText('trained');
+    await expect(
+      page.getByText(
+        'Trained on your three votes — one of them was B, so the model also learned to be a little more careful with big claims.',
+      ),
+    ).toBeVisible();
+    await expect(page.getByText('Best draft yet: fluffy scrambled eggs in five minutes.')).toBeVisible();
     await expect(train).toBeDisabled();
-    await scrollToSelector(page, '.pref-stage');
-    await shot('pref-trained-2.png');
+
+    await scrollToSelector(page, '.pref-stage', 'bottom');
+    await shot('pref-trained.png');
   });
 
-  test('reset vote', async ({ page, shot }) => {
+  test('fresh run B, B, B + train — meter 0', async ({ page, shot }) => {
     await page.goto('/#/preferences');
     await scrollToSelector(page, '.pref-stage');
-    const train = page.getByRole('button', { name: 'Train on that' });
-    const reset = page.getByRole('button', { name: 'Reset vote' });
-    await expect(reset).toBeDisabled();
 
-    await voteOn(page, 'a').click();
-    await train.click();
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '80');
+    await voteOn(page, 1, 'b').click();
+    await voteOn(page, 2, 'b').click();
+    await voteOn(page, 3, 'b').click();
+    await expect(page.locator('.pref-meter-value--a')).toHaveText('0');
+    await expect(page.locator('.pref-meter-value--b')).toHaveText('100');
 
-    await reset.click();
-    await expect(page.locator('.pref-card--chosen')).toHaveCount(0);
-    await expect(page.locator('[role="progressbar"]')).toHaveAttribute('aria-valuenow', '50');
-    await expect(train).toBeDisabled();
-    await expect(page.locator('.pref-level')).toHaveText('no notes yet');
+    await page.getByRole('button', { name: 'Train on my votes' }).click();
+    await expect(page.locator('.pref-level')).toHaveText('trained');
 
-    // The state is back to the initial one — re-frame at the very top of
-    // the page (same framing as pref-initial.png) before capturing.
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await shot('pref-reset.png');
+    await scrollToSelector(page, '.pref-stage', 'bottom');
+    await shot('pref-all-b.png');
   });
 });

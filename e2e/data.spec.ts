@@ -1,23 +1,4 @@
-import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
-
-/**
- * Scroll a selector to sit just below the sticky header. Deterministic
- * offset (header height + 24px) — no scrollIntoView heuristics — so the
- * captured state is the same on every run.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
+import { test, expect, scrollToSelector } from './helper';
 
 test.describe('data — the user-run filter console (3D)', () => {
   test('initial state', async ({ page, shot }) => {

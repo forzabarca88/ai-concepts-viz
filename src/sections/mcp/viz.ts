@@ -1,26 +1,33 @@
 /**
- * MCP servers visualisation — DOM/CSS/SVG only (no canvas, no 3D, per
- * the Task 11 spec), so every control is jsdom-testable and
- * screenshot-frozen:
+ * MCP servers visualisation (Task 12) — "Ask the app" live replies +
+ * 3D socket.
  *
  *  - three columns: Apps (ChatBot / CodePal) · the universal socket
- *    (a big USB-C-shaped port, inline SVG) · Server plugs
- *    (Files / Calendar / Maps);
+ *    (a 3D USB-C-style plate with three slot rings, in a fixed-height
+ *    `.mcp-canvas-wrap` column) · Server plugs (Files / Calendar /
+ *    Maps);
  *  - each app keeps its OWN set of docked servers (the honest MCP
  *    model: every client configures its own servers), so the app
- *    picker and the plug buttons are both meaningful; the socket SVG
- *    shows the active app's docked plugs, one per slot, with its
- *    cable drawn to the final state only (no animated draw);
+ *    picker and the plug buttons are both meaningful;
+ *  - "Ask the app" (enabled iff the active app has ≥1 docked server)
+ *    switches on the reply panel: a deterministic template,
+ *    recomputed LIVE on every state change, joining one fixed clause
+ *    per docked server in SERVERS order;
  *  - plugging a server into the active app adds a "connected: X" chip
  *    to that app's card and increments the "N tools ready" count;
- *    "Unplug all" clears the active app's sockets;
- *  - the status line ("N tools ready" + "No tools — just words." at
- *    zero) is one aria-live="polite" region; plugs are real buttons
- *    with aria-pressed;
- *  - the socket SVG is fully re-rendered per state with fixed
- *    geometry and no randomness (deterministic-everything);
- *  - each mount() returns a cleanup that removes its subtree.
+ *    "Unplug all" clears the active app's sockets (and its ask);
+ *  - the socket is a 3D scene built through the `createStageKit`
+ *    kit (2D blit + context-loss rebuild) with `alpha: true`: a dim
+ *    rounded-rectangle plate, three dim slot rings, and — per docked
+ *    server — a colored plug cluster seated in its slot with a cable
+ *    drawn to the right;
+ *  - every visual state is mirrored in the DOM (chips, count, plug
+ *    aria-pressed, reply, hint) — so every control keeps working in
+ *    jsdom, where the canvas is replaced by `.viz-fallback`.
  */
+import * as THREE from 'three';
+import { addStarfield, createStageKit, makeGlowPoints } from '../../three/helpers';
+import type { Stage3DHandle } from '../../three/helpers';
 
 type AppId = 'chatbot' | 'codepal';
 
@@ -59,56 +66,45 @@ function countText(n: number): string {
   return `${n} tools ready`;
 }
 
-/* ---------- the socket SVG (fixed geometry, no measurement) ---------- */
+/* ---------- the reply: a deterministic, live template ---------- */
 
-const SVG_W = 240;
-const SVG_H = 252;
+/** One fixed clause per server, in SERVERS order. */
+const REPLY_CLAUSE: Record<ServerId, string> = {
+  files: 'the hike photos are in Hike 2024.zip',
+  calendar: 'Saturday is free',
+  maps: 'the trail is 8.4 miles',
+};
 
-/** Vertical centre of each of the three slots (top → bottom). */
-const SLOT_CY = [46, 114, 182] as const;
+/** Each app phrases the question its way. */
+const REPLY_VERB: Record<AppId, string> = { chatbot: 'asked', codepal: 'checked' };
+
+const REPLY_EMPTY = 'Nothing to ask yet — plug something in.';
 
 /**
- * Build the full SVG inner markup for the current state. The block and
- * the three slots are always drawn; each docked server adds its plug
- * head (seated in its slot) plus its cable, drawn to the final state
- * only. Fully deterministic: fixed coordinates, no randomness.
+ * The reply for an app — a pure function of (app, docked set, asked):
+ * `"{App} {verb} its tools: {clauses joined with "; "}.`" with the
+ * clauses in fixed SERVERS order. The placeholder while nothing is
+ * asked or nothing is docked.
  */
-function buildSocket(docked: ReadonlySet<ServerId>): string {
-  const block =
-    `<rect class="mc-block" x="16" y="12" width="104" height="204" rx="20"/>` +
-    `<text class="mc-portlabel" x="68" y="240" text-anchor="middle">USB-C</text>`;
-
-  const slots = SLOT_CY.map((cy) => {
-    return `<rect class="mc-slot" x="80" y="${cy - 12}" width="36" height="24" rx="12"/>`;
-  }).join('');
-
-  const plugs = SERVERS.filter((s) => docked.has(s.id))
-    .map((s) => {
-      const cy = SLOT_CY[SERVERS.indexOf(s)];
-      return (
-        `<g class="mc-docked">` +
-        `<line class="mc-cable mc-cable--${s.id}" x1="152" y1="${cy}" x2="232" y2="${cy}"/>` +
-        `<circle class="mc-cabledot mc-cabledot--${s.id}" cx="232" cy="${cy}" r="4.5"/>` +
-        `<rect class="mc-plughead mc-plughead--${s.id}" x="84" y="${cy - 16}" width="68" height="32" rx="9"/>` +
-        `<circle class="mc-led" cx="96" cy="${cy}" r="3.5"/>` +
-        `</g>`
-      );
-    })
-    .join('');
-
-  return block + slots + plugs;
+function replyFor(appId: AppId, dockedIds: readonly ServerId[], asked: boolean): string {
+  if (!asked || dockedIds.length === 0) return REPLY_EMPTY;
+  const clauses = SERVERS.filter((s) => dockedIds.includes(s.id)).map((s) => REPLY_CLAUSE[s.id]);
+  const name = APPS.find((a) => a.id === appId)!.name;
+  return `${name} ${REPLY_VERB[appId]} its tools: ${clauses.join('; ')}.`;
 }
 
 /* ============================================================
-   The stage: apps | socket | server plugs, a status line and
-   the "Unplug all" bar. One mount because everything shares
-   state.
+   The stage: apps | 3D socket | server plugs, a status line,
+   the always-present reply panel and the Ask / Unplug bar.
+   One mount because everything shares state.
    ============================================================ */
 
 export function mountMcpViz(root: HTMLElement): () => void {
   let activeApp: AppId = 'chatbot';
   /** Per-app docked servers — each app wires its own set. */
   const docked: Record<AppId, ServerId[]> = { chatbot: [], codepal: [] };
+  /** Per-app "has the user asked?" — set by Ask the app, reset by Unplug all. */
+  const asked: Record<AppId, boolean> = { chatbot: false, codepal: false };
 
   const stage = document.createElement('section');
   stage.className = 'stage mcp-stage';
@@ -177,18 +173,16 @@ export function mountMcpViz(root: HTMLElement): () => void {
   }
   appsCol.append(appsLabel, appsWrap);
 
-  // column 2 — the universal socket
+  // column 2 — the universal socket (a 3D scene in a fixed 252px wrap;
+  // the kit appends its canvas + blit inside, absolutely positioned)
   const socketCol = document.createElement('div');
   socketCol.className = 'mcp-col mcp-col--socket';
   const socketLabel = document.createElement('p');
   socketLabel.className = 'mcp-col-label';
   socketLabel.textContent = 'The socket';
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'mc-svg');
-  svg.setAttribute('viewBox', `0 0 ${SVG_W} ${SVG_H}`);
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', 'The universal USB-C socket');
-  socketCol.append(socketLabel, svg);
+  const canvasWrap = document.createElement('div');
+  canvasWrap.className = 'mcp-canvas-wrap';
+  socketCol.append(socketLabel, canvasWrap);
 
   // column 3 — server plugs
   const plugsCol = document.createElement('div');
@@ -235,20 +229,44 @@ export function mountMcpViz(root: HTMLElement): () => void {
   note.textContent = NO_TOOLS_NOTE;
   statusline.append(count, note);
 
+  /* ---------- reply panel (always present, fixed min-height) ---------- */
+
+  const reply = document.createElement('div');
+  reply.className = 'mcp-reply';
+  const replyLabel = document.createElement('p');
+  replyLabel.className = 'mcp-reply-label';
+  replyLabel.textContent = 'The reply';
+  const replyText = document.createElement('p');
+  replyText.className = 'mcp-reply-text';
+  replyText.setAttribute('aria-live', 'polite');
+  reply.append(replyLabel, replyText);
+
   /* ---------- stage bar ---------- */
 
   const bar = document.createElement('div');
   bar.className = 'stage-bar';
+  const askBtn = document.createElement('button');
+  askBtn.type = 'button';
+  askBtn.className = 'btn btn-primary mcp-ask';
+  askBtn.textContent = 'Ask the app';
+  askBtn.disabled = true;
   const unplugBtn = document.createElement('button');
   unplugBtn.type = 'button';
-  unplugBtn.className = 'btn btn-primary mcp-unplug';
+  unplugBtn.className = 'btn btn-ghost mcp-unplug';
   unplugBtn.textContent = 'Unplug all';
   const hint = document.createElement('span');
   hint.className = 'stage-bar-hint mcp-hint';
-  bar.append(unplugBtn, hint);
+  bar.append(askBtn, unplugBtn, hint);
+
+  askBtn.addEventListener('click', () => {
+    if (docked[activeApp].length === 0) return; // disabled anyway
+    asked[activeApp] = true;
+    render();
+  });
 
   unplugBtn.addEventListener('click', () => {
     docked[activeApp] = [];
+    asked[activeApp] = false;
     render();
   });
 
@@ -259,6 +277,36 @@ export function mountMcpViz(root: HTMLElement): () => void {
     else list.splice(idx, 1);
     render();
   };
+
+  stage.append(head, grid, statusline, reply, bar);
+
+  // The stage is in the document before the kit is created, so the
+  // wrapper already has its final laid-out size (clientWidth/Height)
+  // when the renderer buffer is sized — the scene aspect matches the
+  // on-screen column in screenshots.
+  root.appendChild(stage);
+
+  /* ----- 3D socket (through the kit) -----
+     The kit owns the 2D blit and the context-loss rebuild, so the
+     section never hand-rolls them. `reapply` mirrors the current
+     docked set onto the refs (and tolerates null refs — jsdom
+     fallback). It reads the closure state at call time, which is
+     what makes the post-context-loss rebuild re-apply correctly. */
+  const applySocket = (refs: SocketRefs | null): void => {
+    if (!refs) return; // jsdom / no-WebGL — the DOM mirror carries the state
+    refs.apply(new Set(docked[activeApp]));
+  };
+
+  const kit = createStageKit({
+    wrapper: canvasWrap,
+    stageOpts: {
+      seed: 20260412,
+      camera: { position: [0, 0, 8], fov: 40 },
+      alpha: true,
+    },
+    build: (h) => buildSocketScene(h),
+    reapply: (refs) => applySocket(refs as SocketRefs | null),
+  });
 
   /* ---------- render: every visual state is a pure function ---------- */
 
@@ -289,12 +337,17 @@ export function mountMcpViz(root: HTMLElement): () => void {
       plugButtons.get(server.id)!.setAttribute('aria-pressed', String(activeSet.has(server.id)));
     }
 
-    // socket: full re-render, fixed geometry
-    svg.innerHTML = buildSocket(activeSet);
-
     // status line
     count.textContent = countText(activeIds.length);
     note.hidden = activeIds.length > 0;
+
+    // Ask: enabled iff the active app has something docked
+    askBtn.disabled = activeIds.length === 0;
+
+    // reply: the deterministic template, recomputed live
+    const text = replyFor(activeApp, activeIds, asked[activeApp]);
+    replyText.textContent = text;
+    replyText.classList.toggle('mcp-reply-text--empty', text === REPLY_EMPTY);
 
     // hint
     const appName = APPS.find((a) => a.id === activeApp)!.name;
@@ -302,13 +355,182 @@ export function mountMcpViz(root: HTMLElement): () => void {
       activeIds.length === 0
         ? 'Nothing plugged in — click a server on the right.'
         : `${appName} has ${countText(activeIds.length).replace(' ready', '')} — "Unplug all" clears this app.`;
+
+    // 3D mirror + blit
+    applySocket(kit.refs as SocketRefs | null);
+    kit.render();
   };
 
   render();
 
-  stage.append(head, grid, statusline, bar);
-  root.appendChild(stage);
-  return () => stage.remove();
+  return () => {
+    kit.dispose();
+    stage.remove();
+  };
+}
+
+/* ============================================================
+   3D socket: a dim rounded-rectangle plate, three dim slot
+   rings, and per-docked-server plug clusters with cables.
+   ============================================================ */
+
+interface SocketRefs {
+  /** Seat/unseat each server's plug + cable for the docked set. */
+  apply(docked: ReadonlySet<ServerId>): void;
+}
+
+/* Point budget: 236 plate + 3×40 rings + 3×(80 cluster + 24 cable)
+   plugs + 80 starfield. */
+const PLATE_ROWS = 12;
+const PLATE_COLS = 20;
+/** The plate's x/y span (world units) — its right edge is x = 0.9. */
+const PLATE_X: readonly [number, number] = [-1.9, 0.9];
+const PLATE_Y: readonly [number, number] = [-1.4, 1.4];
+const PLATE_SIZE = 0.05;
+const PLATE_HEX = '#22304F';
+const RING_POINTS = 40;
+const RING_RADIUS = 0.35;
+const RING_SIZE = 0.08;
+const RING_HEX = '#33405F';
+/** Slot position: the plate's right edge, top→bottom = SERVERS order. */
+const SLOT_X = 0.9;
+const SLOT_Y: readonly number[] = [0.9, 0, -0.9];
+const PLUG_POINTS = 80;
+const PLUG_RADIUS = 0.3;
+const PLUG_SIZE = 0.14;
+const CABLE_POINTS = 24;
+const CABLE_X: readonly [number, number] = [1.2, 2.6];
+const CABLE_SIZE = 0.1;
+/** Server signal colours (3D scene — matches the DOM plug glow). */
+const SERVER_HEX: Record<ServerId, string> = {
+  files: '#FFB020',
+  calendar: '#FF6B5E',
+  maps: '#22C48E',
+};
+
+function buildSocketScene(handle: Stage3DHandle): SocketRefs | null {
+  const scene = handle.scene;
+  if (!scene) return null;
+  const { rand } = handle;
+
+  /** A constant per-point color array (makeGlowPoints needs one per point). */
+  const fill = (hex: string, n: number): Float32Array => {
+    const c = new THREE.Color(hex);
+    const out = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      out[i * 3] = c.r;
+      out[i * 3 + 1] = c.g;
+      out[i * 3 + 2] = c.b;
+    }
+    return out;
+  };
+
+  /* 1 — the socket block: a flat 12×20 grid in the camera-facing
+     xy-plane. Rounded rectangle: each 2×2 corner block drops its far
+     diagonal point (grid-unit radius 1) — 240 → 236 points. No
+     rand() calls. */
+  const dx = (PLATE_X[1] - PLATE_X[0]) / (PLATE_COLS - 1);
+  const dy = (PLATE_Y[1] - PLATE_Y[0]) / (PLATE_ROWS - 1);
+  const platePts: number[] = [];
+  for (let r = 0; r < PLATE_ROWS; r++) {
+    for (let c = 0; c < PLATE_COLS; c++) {
+      const inCornerBlock =
+        (r <= 1 && c <= 1) ||
+        (r <= 1 && c >= PLATE_COLS - 2) ||
+        (r >= PLATE_ROWS - 2 && c <= 1) ||
+        (r >= PLATE_ROWS - 2 && c >= PLATE_COLS - 2);
+      if (inCornerBlock && Math.hypot(Math.min(r, PLATE_ROWS - 1 - r), Math.min(c, PLATE_COLS - 1 - c)) > 1) {
+        continue; // the far diagonal of a corner block — cuts the corner
+      }
+      platePts.push(PLATE_X[0] + c * dx, PLATE_Y[0] + r * dy, 0);
+    }
+  }
+  scene.add(
+    makeGlowPoints(Float32Array.from(platePts), fill(PLATE_HEX, platePts.length / 3), PLATE_SIZE),
+  );
+
+  /* 2 — the three slot rings (top → bottom = files / calendar / maps).
+     Evenly spaced angles; two rand() calls per point (radial jitter,
+     z jitter), consumed in order. */
+  for (const cy of SLOT_Y) {
+    const positions = new Float32Array(RING_POINTS * 3);
+    for (let i = 0; i < RING_POINTS; i++) {
+      const theta = (i / RING_POINTS) * Math.PI * 2;
+      const r = RING_RADIUS + (rand() - 0.5) * 0.06;
+      const z = (rand() - 0.5) * 0.06;
+      positions[i * 3] = SLOT_X + r * Math.cos(theta);
+      positions[i * 3 + 1] = cy + r * Math.sin(theta);
+      positions[i * 3 + 2] = z;
+    }
+    scene.add(makeGlowPoints(positions, fill(RING_HEX, RING_POINTS), RING_SIZE));
+  }
+
+  /* 3 — the plugs: all three are built (files → calendar → maps),
+     each a seeded sphere cluster seated in its slot plus a straight
+     cable from the cluster edge to x = 2.6, all in the server's
+     colour. Built hidden; `apply()` seats the docked ones.
+     Sphere offsets use three rand() calls per point (theta, phi,
+     cube-root radius) — the house seeded-sphere order. */
+  const sphereOffsets = (count: number, radius: number): Float32Array => {
+    const offsets = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const theta = rand() * Math.PI * 2;
+      const phi = Math.acos(2 * rand() - 1);
+      const r = radius * Math.cbrt(rand());
+      const sinPhi = Math.sin(phi);
+      offsets[i * 3] = r * sinPhi * Math.cos(theta);
+      offsets[i * 3 + 1] = r * Math.cos(phi);
+      offsets[i * 3 + 2] = r * sinPhi * Math.sin(theta);
+    }
+    return offsets;
+  };
+
+  const plugs = SERVERS.map((server, i) => {
+    const hex = SERVER_HEX[server.id];
+    const cy = SLOT_Y[i];
+
+    const offsets = sphereOffsets(PLUG_POINTS, PLUG_RADIUS);
+    const positions = new Float32Array(PLUG_POINTS * 3);
+    for (let j = 0; j < PLUG_POINTS; j++) {
+      positions[j * 3] = SLOT_X + offsets[j * 3];
+      positions[j * 3 + 1] = cy + offsets[j * 3 + 1];
+      positions[j * 3 + 2] = offsets[j * 3 + 2];
+    }
+    const cluster = makeGlowPoints(positions, fill(hex, PLUG_POINTS), PLUG_SIZE);
+
+    const cablePositions = new Float32Array(CABLE_POINTS * 3);
+    for (let j = 0; j < CABLE_POINTS; j++) {
+      cablePositions[j * 3] = CABLE_X[0] + (j / (CABLE_POINTS - 1)) * (CABLE_X[1] - CABLE_X[0]);
+      cablePositions[j * 3 + 1] = cy;
+      cablePositions[j * 3 + 2] = 0;
+    }
+    const cable = makeGlowPoints(cablePositions, fill(hex, CABLE_POINTS), CABLE_SIZE);
+
+    cluster.visible = false;
+    cable.visible = false;
+    scene.add(cluster);
+    scene.add(cable);
+    return { cluster, cable };
+  });
+
+  /* 4 — the ambient starfield (2 rand() calls/point, in order). */
+  addStarfield(handle, 80, 7, '#22304F');
+
+  /* ----- state application (immediate — the frozen protocol has no
+     tweens) ----- */
+  let appliedKey = '';
+  return {
+    apply(docked) {
+      const key = SERVERS.map((s) => (docked.has(s.id) ? '1' : '0')).join('');
+      if (key === appliedKey) return;
+      appliedKey = key;
+      plugs.forEach((plug, i) => {
+        const on = docked.has(SERVERS[i].id);
+        plug.cluster.visible = on;
+        plug.cable.visible = on;
+      });
+    },
+  };
 }
 
 /* ============================================================

@@ -3,6 +3,10 @@
    Every rule is scoped under .page--tool-calling.
    ============================================================ */
 
+/* ---------- stage + 3D packet-relay layer ----------
+   The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it, behind the stage UI. */
+
 /* ---------- stage head + question picker ---------- */
 .page--tool-calling .tool-head {
   display: flex;
@@ -69,11 +73,13 @@
 }
 
 /* ---------- the SVG flow ---------- */
-.page--tool-calling .tool-flow {
+.page--tool-calling .tool-flow-zone {
   margin-top: var(--space-3);
   margin-bottom: var(--space-3);
 }
 
+/* the viewBox is fixed (680×336) for every state, so the rendered
+   height never changes and the stage never resizes. */
 .page--tool-calling .tv-svg {
   display: block;
   width: 100%;
@@ -141,18 +147,24 @@
   fill: var(--on-stage);
 }
 
+/* no tool picked yet — the card is still a placeholder */
+.page--tool-calling .tv-tool-pending {
+  fill: var(--on-stage-soft);
+}
+
 .page--tool-calling .tv-tool-result {
   font-size: 14px;
   font-weight: 600;
   fill: var(--mint);
 }
 
-/* "Read result" beat: the result line itself turns amber */
-.page--tool-calling .tv-tool-result--active {
-  fill: var(--amber);
+/* a wrong tool came back — the result line turns coral */
+.page--tool-calling .tv-tool-result--error {
+  fill: var(--coral);
 }
 
-/* answer bubble — mint when the tool worked, coral when it can't */
+/* answer bubble — four tones: off (no tools), wrong (wrong tool),
+   pending (no pick yet), on (the correct tool ran) */
 .page--tool-calling .tv-answer-bubble--on {
   fill: var(--stage-2);
   stroke: rgba(34, 196, 142, 0.5);
@@ -163,6 +175,17 @@
   stroke: rgba(255, 107, 94, 0.55);
 }
 
+.page--tool-calling .tv-answer-bubble--wrong {
+  fill: var(--stage-2);
+  stroke: rgba(255, 107, 94, 0.75);
+}
+
+.page--tool-calling .tv-answer-bubble--pending {
+  fill: var(--stage-2);
+  stroke: rgba(159, 168, 188, 0.4);
+  stroke-dasharray: 6 4;
+}
+
 .page--tool-calling .tv-answer-label--on {
   fill: var(--mint);
 }
@@ -171,9 +194,25 @@
   fill: var(--coral);
 }
 
+.page--tool-calling .tv-answer-label--wrong {
+  fill: var(--coral);
+}
+
+.page--tool-calling .tv-answer-label--pending {
+  fill: var(--on-stage-soft);
+}
+
 .page--tool-calling .tv-answer-text {
   font-size: 15px;
   fill: var(--on-stage);
+}
+
+/* the "Wrong tool" tag in the answer bubble's corner */
+.page--tool-calling .tv-wrong-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  fill: var(--coral);
 }
 
 /* connectors between the nodes */
@@ -212,15 +251,105 @@
   opacity: 0.35;
 }
 
-/* ---------- the step caption under the flow ---------- */
+/* ---------- the caption under the flow ----------
+   Reserved for two lines so the caption never changes the stage
+   height when its text swaps between states. */
 .page--tool-calling .tool-caption {
   margin: var(--space-3) auto 0;
-  min-height: 1.5rem;
+  min-height: 3rem;
   max-width: 76ch;
   font-size: 0.9375rem;
   line-height: 1.6;
   text-align: center;
   color: var(--on-stage);
+}
+
+/* ---------- "which tool does it call?" ----------
+   Fixed-height zone, always present: the stage (and the 3D canvas
+   behind it) never resizes between the hidden/visible states. */
+.page--tool-calling .tool-choose-zone {
+  height: 76px;
+}
+
+.page--tool-calling .tool-choose {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+}
+
+/* author display rules outrank the UA [hidden] — scope the override */
+.page--tool-calling .tool-choose[hidden] {
+  display: none;
+}
+
+.page--tool-calling .tool-choose-label {
+  margin-bottom: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--tool-calling .tool-try-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.page--tool-calling .tool-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(159, 168, 188, 0.4);
+  border-radius: var(--radius-chip);
+  background: var(--stage-2);
+  color: var(--on-stage-soft);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-med) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.page--tool-calling .tool-try:hover:not(:disabled) {
+  border-color: var(--on-stage-soft);
+  color: var(--on-stage);
+}
+
+/* the tool that ran the call glows mint */
+.page--tool-calling .tool-try[aria-pressed='true'] {
+  border-color: var(--mint);
+  background: rgba(34, 196, 142, 0.12);
+  color: var(--on-stage);
+  box-shadow: 0 0 18px rgba(34, 196, 142, 0.18);
+}
+
+.page--tool-calling .tool-try:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* the "Tried — no help" tag on a retired wrong tool */
+.page--tool-calling .tool-try-tag {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgba(255, 107, 94, 0.55);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 107, 94, 0.08);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--coral);
 }
 
 /* ---------- stage bar ---------- */

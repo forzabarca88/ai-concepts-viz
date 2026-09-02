@@ -138,7 +138,7 @@ const STAGE_STATUS = [
 ] as const;
 
 /** Counter chain labels — the last stage becomes "tokens ready". */
-const COUNTER_LABELS = ['pages', 'clean pages', 'unique pages', 'tokens ready'] as const;
+const COUNTER_LABELS = ['pages', 'kept pages', 'unique pages', 'tokens ready'] as const;
 
 /** Fixed verdicts, indexed by strictness score (0–6). */
 const VERDICTS: string[] = [
@@ -394,9 +394,10 @@ export function mountDataPipeline(root: HTMLElement): () => void {
     const done = stageIndex >= STAGES.length;
     const result = pipelineOf(choices);
 
-    // Counter chain: raw pages first; "clean pages" reveals as soon as
-    // curation is decided; "unique pages" (the dedup result) and
-    // "tokens ready" reveal once dedup is decided. `—` until reached.
+    // Counter chain: raw pages first; "kept pages" (the after-curation
+    // count) reveals as soon as curation is decided; "unique pages"
+    // (the dedup result) and "tokens ready" reveal once dedup is decided.
+    // `—` until reached.
     counterValueEls.forEach((el, i) => {
       if (i === 0) {
         el.textContent = fmt.format(RAW_PAGES);

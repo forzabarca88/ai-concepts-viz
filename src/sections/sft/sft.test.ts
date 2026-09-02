@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { within } from '@testing-library/dom';
 import { mountPage } from '../../test/mountPage';
 import { page } from './page';
@@ -26,8 +26,32 @@ const instructText = (root: HTMLElement) =>
 const countText = (root: HTMLElement) =>
   root.querySelector('.sft-strip-count')?.textContent ?? '';
 
+const qualityValue = (root: HTMLElement) =>
+  root.querySelector('.sft-quality-value')?.textContent ?? '';
+
 const qualityNow = (root: HTMLElement) =>
   root.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow') ?? '';
+
+const pairCard = (root: HTMLElement) => root.querySelector<HTMLElement>('.sft-pair');
+
+const pairTexts = (root: HTMLElement) =>
+  Array.from(root.querySelectorAll('.sft-pair-text')).map((el) => el.textContent ?? '');
+
+const pairNoteText = (root: HTMLElement) =>
+  root.querySelector('.sft-pair-note')?.textContent ?? '';
+
+const sliderOf = (root: HTMLElement) =>
+  root.querySelector<HTMLInputElement>('.sft-quality-slider');
+
+const setStop = (root: HTMLElement, value: string) => {
+  const slider = sliderOf(root);
+  if (!slider) throw new Error('coaching slider not found');
+  slider.value = value;
+  slider.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
+const mistakeButton = (root: HTMLElement, label: string) =>
+  within(root).getByRole('button', { name: label }) as HTMLButtonElement;
 
 describe('sft page', () => {
   it('renders the eyebrow, h1 and lede', () => {
@@ -58,6 +82,41 @@ describe('sft page', () => {
     for (const title of ["What's happening", 'Why it matters', 'Fun fact']) {
       expect(within(m.root).getByText(title)).toBeTruthy();
     }
+  });
+
+  it('degrades to the .viz-fallback in jsdom, without a canvas', () => {
+    // ARRANGE
+    const m = mount();
+
+    // ASSERT — the 3D twin-cloud layer renders its fallback note in jsdom
+    expect(m.root.querySelector('.viz-fallback')).not.toBeNull();
+    expect(m.root.querySelector('canvas')).toBeNull();
+  });
+});
+
+describe('initial state', () => {
+  it('slider at stop 1, quality 20%, no mistake selected, pair hidden', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+    const slider = sliderOf(root);
+
+    // ASSERT — stop 1 of the coaching slider
+    expect(slider?.value).toBe('0');
+    expect(countText(root)).toBe('1 example');
+    expect(qualityNow(root)).toBe('20');
+    expect(qualityValue(root)).toBe('20%');
+    expect((root.querySelector('.sft-quality-note') as HTMLElement).hidden).toBe(true);
+
+    // ASSERT — no mistake selected, the pair card is hidden, the hint returns
+    const mistakes = Array.from(root.querySelectorAll<HTMLElement>('.sft-mistake'));
+    expect(mistakes).toHaveLength(3);
+    for (const btn of mistakes) expect(btn.getAttribute('aria-pressed')).toBe('false');
+    expect(pairCard(root)?.hidden).toBe(true);
+    expect((root.querySelector('.sft-pair-hint') as HTMLElement).hidden).toBe(false);
+    expect(root.querySelector('.sft-pair-hint')?.textContent).toBe(
+      'Pick a mistake to see the coaching pair.',
+    );
   });
 });
 
@@ -101,57 +160,131 @@ describe('prompt picker', () => {
   );
 });
 
-describe('add examples stepper', () => {
+describe('coaching slider', () => {
   it('walks 1 → 10 → 100 with quality 20% → 60% → 90%', () => {
     // ARRANGE
     const m = mount();
     const root = m.root;
-    const add = within(root).getByRole('button', { name: 'Add 10 examples' }) as HTMLButtonElement;
     const note = root.querySelector<HTMLElement>('.sft-quality-note');
 
-    expect(countText(root)).toBe('1 example');
-    expect(qualityNow(root)).toBe('20');
-    expect(note?.hidden).toBe(true);
-
-    // ACT — press 1: 10 examples, 60%
-    add.click();
+    // ACT — stop 10: 10 examples, 60%
+    setStop(root, '1');
     expect(countText(root)).toBe('10 examples');
     expect(qualityNow(root)).toBe('60');
+    expect(qualityValue(root)).toBe('60%');
     expect(note?.hidden).toBe(true);
 
-    // ACT — press 2: 100 examples, 90%, the quality note appears
-    add.click();
+    // ACT — stop 100: 100 examples, 90%, the quality note appears
+    setStop(root, '2');
     expect(countText(root)).toBe('100 examples');
     expect(qualityNow(root)).toBe('90');
+    expect(qualityValue(root)).toBe('90%');
     expect(note?.hidden).toBe(false);
     expect(note?.textContent).toBe('Quality beats quantity');
 
-    // ASSERT — capped: the stepper locks
-    expect(add.disabled).toBe(true);
+    // ASSERT — back to stop 1 again (the slider is not a one-way stepper)
+    setStop(root, '0');
+    expect(countText(root)).toBe('1 example');
+    expect(qualityValue(root)).toBe('20%');
+    expect(note?.hidden).toBe(true);
   });
 });
 
-describe('show a training pair', () => {
-  it('reveals the fixed instruction/response card', () => {
-    // ARRANGE — hidden at first
+describe('what did it get wrong?', () => {
+  it.each([
+    [
+      'Rambles on',
+      'Write a haiku about autumn.',
+      'Red leaves let go slow\na gust takes them all away\none bare branch remains',
+      'The base model kept going for 400 words. The pair teaches it to stop.',
+    ],
+    [
+      'Ignores the question',
+      'What color is the sky?',
+      'Blue. (Sometimes grey, sometimes pink at sunset.)',
+      'The base model gave a history of optics. The pair teaches it to answer, then stop.',
+    ],
+    [
+      'Wrong format',
+      'List the days of the week.',
+      'Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday',
+      'The base model wrote an essay about calendars. The pair teaches it the shape of the answer.',
+    ],
+  ] as const)('"%s" reveals its fixed coaching pair', (label, instruction, response, noteText) => {
+    // ARRANGE
     const m = mount();
     const root = m.root;
-    const btn = within(root).getByRole('button', { name: 'Show a training pair' }) as HTMLButtonElement;
-    const card = root.querySelector<HTMLElement>('.sft-pair');
-    expect(card?.hidden).toBe(true);
+    const btn = mistakeButton(root, label);
 
     // ACT
     btn.click();
 
-    // ASSERT — the fixed pair is visible and the button locks
-    expect(card?.hidden).toBe(false);
-    expect(within(root).getByText('Instruction:')).toBeTruthy();
-    expect(within(root).getByText('Response:')).toBeTruthy();
-    const texts = Array.from(root.querySelectorAll('.sft-pair-text')).map((el) =>
-      el.textContent ?? '',
+    // ASSERT — the card is visible with the exact pair, the hint is gone
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(pairCard(root)?.hidden).toBe(false);
+    expect(pairTexts(root)).toEqual([instruction, response]);
+    expect(pairNoteText(root)).toBe(noteText);
+    expect((root.querySelector('.sft-pair-hint') as HTMLElement).hidden).toBe(true);
+  });
+
+  it('re-clicking the selected mistake deselects it', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+    const btn = mistakeButton(root, 'Rambles on');
+
+    // ACT — select, then re-click to deselect
+    btn.click();
+    expect(pairCard(root)?.hidden).toBe(false);
+    btn.click();
+
+    // ASSERT — the card hides and the hint returns
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    expect(pairCard(root)?.hidden).toBe(true);
+    expect((root.querySelector('.sft-pair-hint') as HTMLElement).hidden).toBe(false);
+    expect(root.querySelector('.sft-pair-hint')?.textContent).toBe(
+      'Pick a mistake to see the coaching pair.',
     );
-    expect(texts[0]).toBe('Write a haiku about autumn.');
-    expect(texts[1]).toBe('Red leaves let go slow\na gust takes them all away\none bare branch remains');
-    expect(btn.disabled).toBe(true);
+  });
+
+  it('switching mistakes swaps the pair content', () => {
+    // ARRANGE
+    const m = mount();
+    const root = m.root;
+
+    // ACT — select one mistake, then switch to another
+    mistakeButton(root, 'Rambles on').click();
+    mistakeButton(root, 'Ignores the question').click();
+
+    // ASSERT — only the new mistake is pressed, with its pair
+    expect(mistakeButton(root, 'Rambles on').getAttribute('aria-pressed')).toBe('false');
+    expect(mistakeButton(root, 'Ignores the question').getAttribute('aria-pressed')).toBe('true');
+    expect(pairTexts(root)).toEqual([
+      'What color is the sky?',
+      'Blue. (Sometimes grey, sometimes pink at sunset.)',
+    ]);
+  });
+});
+
+describe('window listener hygiene', () => {
+  it('removes its window resize listener on unmount (no leak on the no-WebGL path)', () => {
+    // ARRANGE — the kit registers exactly one window resize listener per
+    // mount (removed again on dispose); the section adds none of its own.
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    // ACT — three mount/unmount cycles.
+    for (let i = 0; i < 3; i += 1) {
+      const m = mountPage(page);
+      m.unmount();
+    }
+    const adds = addSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    const removes = removeSpy.mock.calls.filter((args) => args[0] === 'resize').length;
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+
+    // ASSERT — balanced: one removal for every registration (3/3).
+    expect(adds).toBe(3);
+    expect(removes).toBe(3);
   });
 });

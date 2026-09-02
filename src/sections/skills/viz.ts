@@ -1,21 +1,35 @@
 /**
- * Skills visualisations — a friendly robot agent (inline SVG) with a
- * skill "backpack" and a three-task board (Task 10: DOM/CSS/SVG only,
- * no canvas), so every control is jsdom-testable and
- * screenshot-frozen:
+ * Skills visualisation (Task 11) — "pick which skill to teach +
+ * 'Try the task' results + 3D skill dock".
  *
- *  - "Teach a skill" cycles three fixed skills into the inventory
- *    (Browse the web / Write code / Summarize); every card carries a
- *    "Learned!" badge and a real "Forget" button; the button locks
- *    while all three are learned (forgetting one reopens its slot);
- *  - the task board picks one of three fixed tasks; the readiness
- *    line is a pure function of (learned skills, selected task):
- *    "Ready! 🎒" or "Not ready" + "Missing: <skill>";
- *  - the inventory card for the selected task's required skill glows
- *    amber; the robot's three chest lights mirror the learned count;
- *  - all data lists are fixed and hardcoded (deterministic-everything);
- *  - each mount() returns a cleanup that removes its subtree.
+ *  - three teach cards (Browse the web 🌐 / Write code 💻 / Summarize
+ *    📝) replace the blind "Teach a skill" cycle — the user picks
+ *    which skill to teach, in any order; each card's `Teach` button
+ *    carries `aria-pressed = learned`; the inventory keeps the
+ *    "Learned!" badge and the real "Forget" button;
+ *  - the task board (three fixed tasks) gains a `Try the task`
+ *    primary button whenever the selected task is ready; pressing it
+ *    appends the task's fixed result line to the always-present
+ *    results area (fixed `min-height`, so the stage never resizes);
+ *    the tried task's card shows an aria-hidden `Done ✓` badge and
+ *    its Try button locks;
+ *  - forgetting a skill also un-tries its task (the task leaves
+ *    `triedTasks` and its result line is cleared);
+ *  - behind the DOM UI sits the 3D "skill dock" layer
+ *    (`.skill-canvas-wrap.stage-3d-layer`): a core orb at the center
+ *    plus three skill orbs that sit far and dim until learned, then
+ *    dock close in their own skill color. Built through the
+ *    `createStageKit` resilience kit (2D blit + context-loss rebuild)
+ *    with `alpha: true`, so the stage's CSS gradient shows through
+ *    the transparent canvas.
+ *
+ * ALL state is mirrored in the DOM (teach cards, inventory, badges,
+ * readiness, results, hints) — so every control keeps working in
+ * jsdom, where the canvas is replaced by `.viz-fallback`.
  */
+import * as THREE from 'three';
+import { addStarfield, createStageKit, makeGlowPoints } from '../../three/helpers';
+import type { Stage3DHandle } from '../../three/helpers';
 
 interface Skill {
   id: string;
@@ -23,7 +37,7 @@ interface Skill {
   icon: string;
 }
 
-/** The three teachable skills, in the fixed order the cycle walks. */
+/** The three teachable skills, in the fixed teach-card order. */
 const SKILLS: readonly Skill[] = [
   { id: 'browse', name: 'Browse the web', icon: '🌐' },
   { id: 'code', name: 'Write code', icon: '💻' },
@@ -46,10 +60,27 @@ const TASKS: readonly Task[] = [
   { id: 'article', label: 'Summarize this long article', need: 'summarize' },
 ];
 
+/** The fixed result line each task prints when it is tried. */
+const TASK_RESULTS: ReadonlyMap<string, string> = new Map([
+  [
+    'trail',
+    'It opened three tabs, compared reviews and settled on: Maple Ridge, 8.4 miles, one good chocolate shop at the trailhead.',
+  ],
+  [
+    'script',
+    'It wrote a 6-line script, ran it on a test folder, then ran it for real. All 41 files renamed.',
+  ],
+  [
+    'article',
+    'It read the 4,000-word article and replied with three bullets. You can argue with bullet two.',
+  ],
+]);
+
 const EMPTY_LINE = 'No skills yet — just a very smart mind';
 const IDLE_LINE = 'Pick a task to check.';
 const READY_LINE = 'Ready! 🎒';
 const NOT_READY_LINE = 'Not ready';
+const RESULTS_EMPTY = 'No results yet — teach it a skill, pick a task, then try it.';
 
 /** Readiness is a pure function of (learned skills, selected task). */
 type Readiness =
@@ -64,11 +95,11 @@ function readinessOf(learned: ReadonlySet<string>, taskId: string | null): Readi
   return { status: 'missing', skillName: SKILL_BY_ID.get(task.need)?.name ?? '' };
 }
 
-/** Stage-bar hint — also a pure function of the learned set. */
+/** Stage-bar hint — a pure function of the learned set. */
 function teachHint(learned: ReadonlySet<string>): string {
   if (learned.size >= SKILLS.length) return 'All 3 skills learned — the backpack is full.';
-  const next = SKILLS.find((s) => !learned.has(s.id));
-  return next ? `Next up: ${next.name}.` : 'The backpack is full.';
+  if (learned.size === 0) return 'Teach a skill — pick which one first.';
+  return `The backpack holds ${learned.size} of ${SKILLS.length} skills.`;
 }
 
 /** The robot — fixed geometry, no randomness, no measurement. */
@@ -102,19 +133,26 @@ function span(cls: string, text: string): HTMLSpanElement {
 }
 
 /* ============================================================
-   The stage: avatar + inventory | task board + readiness,
-   and the teach bar. One mount because everything shares state.
+   The stage: teach cards | avatar+inventory · board+readiness
+   +results, and the hint bar. One mount because everything
+   shares state.
    ============================================================ */
 
 export function mountSkillViz(root: HTMLElement): () => void {
   const learned = new Set<string>();
   let taskId: string | null = null;
-
-  /* ---------- head ---------- */
+  const triedTasks = new Set<string>(); // tried in press order (Set = insertion order)
 
   const stage = document.createElement('section');
   stage.className = 'stage skill-stage';
   stage.setAttribute('aria-label', 'Agent skills demo');
+
+  /* 3D layer: the kit owns canvas + blit inside this absolute-fill
+     wrapper, behind the stage UI (shared `.stage-3d-layer` utility). */
+  const canvasWrap = document.createElement('div');
+  canvasWrap.className = 'skill-canvas-wrap stage-3d-layer';
+
+  /* ---------- head ---------- */
 
   const head = document.createElement('header');
   head.className = 'skill-head';
@@ -129,7 +167,41 @@ export function mountSkillViz(root: HTMLElement): () => void {
   headText.append(h2, sub);
   head.appendChild(headText);
 
-  /* ---------- body: avatar+inventory | board+readiness ---------- */
+  /* ---------- teach cards (pick which skill, in any order) ---------- */
+
+  const teachRow = document.createElement('div');
+  teachRow.className = 'skill-teach-row';
+  teachRow.setAttribute('role', 'group');
+  teachRow.setAttribute('aria-label', 'Teach a skill');
+  const teachCards: HTMLElement[] = [];
+  const teachButtons: HTMLButtonElement[] = [];
+  SKILLS.forEach((skill) => {
+    const card = document.createElement('div');
+    card.className = 'skill-teach-card';
+    const icon = document.createElement('span');
+    icon.className = 'skill-teach-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = skill.icon;
+    const name = document.createElement('span');
+    name.className = 'skill-teach-name';
+    name.textContent = skill.name;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'skill-teach';
+    btn.textContent = 'Teach';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => {
+      if (learned.has(skill.id)) return; // teaching twice is a no-op
+      learned.add(skill.id);
+      render();
+    });
+    card.append(icon, name, btn);
+    teachRow.appendChild(card);
+    teachCards.push(card);
+    teachButtons.push(btn);
+  });
+
+  /* ---------- body: avatar+inventory | board+readiness+results ---------- */
 
   const body = document.createElement('div');
   body.className = 'skill-body';
@@ -174,56 +246,77 @@ export function mountSkillViz(root: HTMLElement): () => void {
   taskList.className = 'skill-tasks';
   taskList.setAttribute('role', 'group');
   taskList.setAttribute('aria-label', 'Pick a task');
-  const taskButtons: HTMLButtonElement[] = TASKS.map((task) => {
+  const taskButtons: HTMLButtonElement[] = [];
+  const taskDones: HTMLElement[] = [];
+  TASKS.forEach((task) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'skill-task';
     const label = document.createElement('span');
     label.className = 'skill-task-label';
     label.textContent = task.label;
+    const done = document.createElement('span');
+    done.className = 'skill-task-done';
+    done.setAttribute('aria-hidden', 'true'); // keep the button's accessible name stable
+    done.hidden = true;
+    done.textContent = 'Done ✓';
     const need = document.createElement('span');
     need.className = 'skill-task-need';
     need.textContent = `needs: ${SKILL_BY_ID.get(task.need)?.name ?? ''}`;
-    btn.append(label, need);
+    btn.append(label, done, need);
     btn.setAttribute('aria-pressed', 'false');
     btn.addEventListener('click', () => {
       taskId = taskId === task.id ? null : task.id;
       render();
     });
     taskList.appendChild(btn);
-    return btn;
+    taskButtons.push(btn);
+    taskDones.push(done);
   });
 
-  const readiness = document.createElement('p');
+  const readiness = document.createElement('div');
   readiness.className = 'skill-readiness';
   readiness.setAttribute('aria-live', 'polite');
 
-  right.append(boardHead, taskList, readiness);
-  body.append(left, right);
-
-  /* ---------- stage bar ---------- */
-
-  const bar = document.createElement('div');
-  bar.className = 'stage-bar';
-  const teachBtn = document.createElement('button');
-  teachBtn.type = 'button';
-  teachBtn.className = 'btn btn-primary skill-teach';
-  teachBtn.textContent = 'Teach a skill';
-  const hint = document.createElement('span');
-  hint.className = 'stage-bar-hint';
-  bar.append(teachBtn, hint);
-
-  teachBtn.addEventListener('click', () => {
-    // Next unlearned skill in the fixed order (this is also what
-    // makes forgetting one skill reopen its slot deterministically).
-    const next = SKILLS.find((s) => !learned.has(s.id));
-    if (!next) return;
-    learned.add(next.id);
+  const tryBtn = document.createElement('button');
+  tryBtn.type = 'button';
+  tryBtn.className = 'btn btn-primary skill-try';
+  tryBtn.textContent = 'Try the task';
+  tryBtn.hidden = true;
+  tryBtn.addEventListener('click', () => {
+    if (!taskId || triedTasks.has(taskId)) return;
+    triedTasks.add(taskId);
     render();
   });
 
+  /* results — always present, fixed min-height (the stage and the
+     3D canvas behind it never resize between states). */
+  const results = document.createElement('div');
+  results.className = 'skill-results';
+  const resultsHead = document.createElement('p');
+  resultsHead.className = 'skill-results-head';
+  resultsHead.textContent = 'Task results';
+  const resultsEmpty = document.createElement('p');
+  resultsEmpty.className = 'skill-results-empty';
+  resultsEmpty.textContent = RESULTS_EMPTY;
+  const resultList = document.createElement('ul');
+  resultList.className = 'skill-result-list';
+  results.append(resultsHead, resultsEmpty, resultList);
+
+  right.append(boardHead, taskList, readiness, results);
+  body.append(left, right);
+
+  /* ---------- stage bar: the hint (a pure function of `learned`) ---------- */
+
+  const bar = document.createElement('div');
+  bar.className = 'stage-bar';
+  const hint = document.createElement('span');
+  hint.className = 'stage-bar-hint';
+  bar.append(hint);
+
   // Forget: one delegated listener — the cards are rebuilt on every
-  // render, so per-card listeners would leak.
+  // render, so per-card listeners would leak. Forgetting a skill also
+  // un-tries its task (result line cleared).
   cardList.addEventListener('click', (event) => {
     const target = event.target as HTMLElement | null;
     const btn = target?.closest<HTMLButtonElement>('.skill-forget');
@@ -231,6 +324,9 @@ export function mountSkillViz(root: HTMLElement): () => void {
     const id = btn.dataset.forget;
     if (!id) return;
     learned.delete(id);
+    for (const t of TASKS) {
+      if (t.need === id) triedTasks.delete(t.id);
+    }
     render();
   });
 
@@ -243,7 +339,12 @@ export function mountSkillViz(root: HTMLElement): () => void {
     `<button type="button" class="skill-forget" data-forget="${skill.id}">Forget</button>`;
 
   const render = () => {
-    const needed = taskId ? TASKS.find((t) => t.id === taskId)?.need ?? null : null;
+    // teach cards
+    SKILLS.forEach((skill, i) => {
+      const isLearned = learned.has(skill.id);
+      teachButtons[i].setAttribute('aria-pressed', String(isLearned));
+      teachCards[i].classList.toggle('skill-teach-card--learned', isLearned);
+    });
 
     // inventory (rebuilt per state — fixed data, so fully deterministic)
     const cards = SKILLS.filter((s) => learned.has(s.id));
@@ -251,7 +352,9 @@ export function mountSkillViz(root: HTMLElement): () => void {
       ...cards.map((skill) => {
         const li = document.createElement('li');
         li.className =
-          skill.id === needed ? 'skill-card skill-card--needed' : 'skill-card';
+          skill.id === (taskId ? TASKS.find((t) => t.id === taskId)?.need ?? null : null)
+            ? 'skill-card skill-card--needed'
+            : 'skill-card';
         li.innerHTML = cardMarkup(skill);
         return li;
       }),
@@ -263,33 +366,198 @@ export function mountSkillViz(root: HTMLElement): () => void {
     const lights = avatarWrap.querySelectorAll<SVGCircleElement>('.sk-light');
     lights.forEach((light, i) => light.classList.toggle('sk-light--on', i < learned.size));
 
-    // tasks
-    taskButtons.forEach((btn, i) =>
-      btn.setAttribute('aria-pressed', String(TASKS[i].id === taskId)),
-    );
+    // tasks + their (aria-hidden) Done badges
+    taskButtons.forEach((btn, i) => {
+      btn.setAttribute('aria-pressed', String(TASKS[i].id === taskId));
+      taskDones[i].hidden = !triedTasks.has(TASKS[i].id);
+    });
 
-    // readiness line
+    // readiness line + the Try button (present only when ready)
     const r = readinessOf(learned, taskId);
     if (r.status === 'ready') {
-      readiness.replaceChildren(span('skill-status skill-status--ready', READY_LINE));
+      tryBtn.hidden = false;
+      tryBtn.disabled = !!taskId && triedTasks.has(taskId);
+      readiness.replaceChildren(span('skill-status skill-status--ready', READY_LINE), tryBtn);
     } else if (r.status === 'missing') {
+      tryBtn.hidden = true;
       readiness.replaceChildren(
         span('skill-status skill-status--missing', NOT_READY_LINE),
         span('skill-missing-detail', `Missing: ${r.skillName}`),
       );
     } else {
+      tryBtn.hidden = true;
       readiness.replaceChildren(span('skill-status skill-status--idle', IDLE_LINE));
     }
 
-    teachBtn.disabled = learned.size >= SKILLS.length;
+    // results (triedTasks keeps press order — a pure function of clicks)
+    resultsEmpty.hidden = triedTasks.size > 0;
+    resultList.replaceChildren(
+      ...Array.from(triedTasks).map((id) => {
+        const li = document.createElement('li');
+        li.className = 'skill-result-line';
+        li.textContent = TASK_RESULTS.get(id) ?? '';
+        return li;
+      }),
+    );
+
     hint.textContent = teachHint(learned);
+
+    applyDock(kit.refs as DockRefs | null);
+    kit.render();
   };
 
+  /* ----- 3D skill dock (through the kit) -----
+     The kit owns the 2D blit and the context-loss rebuild, so the
+     section never hand-rolls them. `reapply` mirrors the current
+     learned set onto the refs (and tolerates null refs — jsdom
+     fallback). It reads the closure state at call time, which is
+     what makes the post-context-loss rebuild re-apply correctly. */
+  const applyDock = (refs: DockRefs | null): void => {
+    if (!refs) return; // jsdom / no-WebGL — the DOM mirror carries the state
+    refs.apply(learned);
+  };
+
+  stage.append(canvasWrap, head, teachRow, body, bar);
+
+  // The stage is in the document before the kit is created, so the
+  // wrapper already has its final laid-out size (clientWidth/Height)
+  // when the renderer buffer is sized — the dock's orbs render at the
+  // stage's real aspect instead of the 960×540 detached fallback.
+  root.appendChild(stage);
+
+  const kit = createStageKit({
+    wrapper: canvasWrap,
+    stageOpts: {
+      seed: 20260411,
+      camera: { position: [0, 0.2, 8.5], fov: 45 },
+      alpha: true,
+    },
+    build: (h) => buildDockScene(h),
+    reapply: (refs) => applyDock(refs as DockRefs | null),
+  });
+
+  /* ---------- initial paint ---------- */
   render();
 
-  stage.append(head, body, bar);
-  root.appendChild(stage);
-  return () => stage.remove();
+  return () => {
+    kit.dispose();
+    stage.remove();
+  };
+}
+
+/* ============================================================
+   3D skill dock: a core orb at the center and three skill orbs
+   that park far and dim until learned, then dock close in their
+   own skill color.
+   ============================================================ */
+
+interface DockRefs {
+  /** Park each skill orb (far/dim or docked/colored) for the learned set. */
+  apply(learned: ReadonlySet<string>): void;
+}
+
+/* Point budget: 90 core + 3 × 90 skill orbs + 100 starfield. */
+const CORE_COUNT = 90;
+const CORE_RADIUS = 0.6;
+const SKILL_ORB_COUNT = 90;
+const SKILL_ORB_RADIUS = 0.45;
+const ORBIT_RADIUS = 3.4; // unlearned: far out on the orbit, dim
+const DOCK_RADIUS = 1.6; // learned: docked close, full opacity
+/** Skill-orb dock angles (deg, xz-plane) — browse / code / summarize. */
+const ORB_ANGLES_DEG: readonly number[] = [90, 210, 330];
+const ORB_DIM = '#4A5878';
+const SKILL_ORB_COLORS: readonly string[] = ['#6E85FF', '#FFB020', '#22C48E'];
+
+function buildDockScene(handle: Stage3DHandle): DockRefs | null {
+  const scene = handle.scene;
+  if (!scene) return null;
+  const { rand } = handle;
+
+  /* ----- seeded sphere offsets -----
+     rand() consumption order is frozen: for each point, (1) theta,
+     (2) phi (acos(2r − 1)), (3) radius (cube-root for a uniform
+     volume fill) — three calls per point: 90 core, then 90 × 3
+     skill orbs in browse → code → summarize order, then the
+     starfield (2 calls/point). Any change here shifts every point. */
+  const sphereOffsets = (count: number, radius: number): Float32Array => {
+    const offsets = new Float32Array(count * 3);
+    for (let i = 0; i < count; i += 1) {
+      const theta = rand() * Math.PI * 2;
+      const phi = Math.acos(2 * rand() - 1);
+      const r = radius * Math.cbrt(rand());
+      const sinPhi = Math.sin(phi);
+      offsets[i * 3] = r * sinPhi * Math.cos(theta);
+      offsets[i * 3 + 1] = r * Math.cos(phi);
+      offsets[i * 3 + 2] = r * sinPhi * Math.sin(theta);
+    }
+    return offsets;
+  };
+
+  /* ----- core orb: the agent's mind at the dock's center ----- */
+  const coreColor = new THREE.Color('#6E85FF');
+  const coreColors = new Float32Array(CORE_COUNT * 3);
+  const coreOffsets = sphereOffsets(CORE_COUNT, CORE_RADIUS);
+  for (let i = 0; i < CORE_COUNT; i += 1) {
+    coreColors[i * 3] = coreColor.r;
+    coreColors[i * 3 + 1] = coreColor.g;
+    coreColors[i * 3 + 2] = coreColor.b;
+  }
+  scene.add(makeGlowPoints(coreOffsets, coreColors, 0.15));
+
+  /* ----- three skill orbs -----
+     Each orb is stored as seeded offsets from the dock center;
+     `apply()` parks the whole orb at its fixed angle, either on the
+     far orbit (unlearned, dim) or at the dock (learned, skill color). */
+  const orbData = SKILLS.map((skill, i) => {
+    const offsets = sphereOffsets(SKILL_ORB_COUNT, SKILL_ORB_RADIUS);
+    const positions = new Float32Array(SKILL_ORB_COUNT * 3);
+    const colors = new Float32Array(SKILL_ORB_COUNT * 3);
+    const points = makeGlowPoints(positions, colors, 0.12, 0.6);
+    scene.add(points);
+    return {
+      skill,
+      offsets,
+      positions,
+      colors,
+      angle: (ORB_ANGLES_DEG[i] * Math.PI) / 180,
+      posAttr: points.geometry.getAttribute('position') as THREE.BufferAttribute,
+      colAttr: points.geometry.getAttribute('color') as THREE.BufferAttribute,
+      material: points.material as THREE.PointsMaterial,
+    };
+  });
+
+  addStarfield(handle, 100, 8, '#22304F');
+
+  /* ----- state application (immediate — the frozen protocol has no
+     tweens) ----- */
+  const dimColor = new THREE.Color(ORB_DIM);
+  const learnedColors = SKILL_ORB_COLORS.map((hex) => new THREE.Color(hex));
+  let appliedKey = '';
+  return {
+    apply(learned) {
+      const key = SKILLS.map((s) => (learned.has(s.id) ? '1' : '0')).join('');
+      if (key === appliedKey) return;
+      appliedKey = key;
+      orbData.forEach((orb, i) => {
+        const isLearned = learned.has(orb.skill.id);
+        const radius = isLearned ? DOCK_RADIUS : ORBIT_RADIUS;
+        const cx = radius * Math.cos(orb.angle);
+        const cz = radius * Math.sin(orb.angle);
+        const color = isLearned ? learnedColors[i] : dimColor;
+        for (let j = 0; j < SKILL_ORB_COUNT; j += 1) {
+          orb.positions[j * 3] = cx + orb.offsets[j * 3];
+          orb.positions[j * 3 + 1] = orb.offsets[j * 3 + 1];
+          orb.positions[j * 3 + 2] = cz + orb.offsets[j * 3 + 2];
+          orb.colors[j * 3] = color.r;
+          orb.colors[j * 3 + 1] = color.g;
+          orb.colors[j * 3 + 2] = color.b;
+        }
+        orb.material.opacity = isLearned ? 1 : 0.6;
+        orb.posAttr.needsUpdate = true;
+        orb.colAttr.needsUpdate = true;
+      });
+    },
+  };
 }
 
 /* ============================================================

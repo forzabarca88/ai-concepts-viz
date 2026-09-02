@@ -1,110 +1,64 @@
-import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
+import { test, expect, scrollToSelector } from './helper';
 
-/**
- * Scroll a selector to sit just below the sticky header (deterministic
- * offset — header height + 24px — so every capture frames the same
- * slice of the page). Playwright clicks can auto-scroll the target into
- * view and re-frame the page, so this is re-applied after every
- * interaction before capturing.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
+const RESULTS_EMPTY = 'No results yet — teach it a skill, pick a task, then try it.';
+const TRAIL_RESULT =
+  'It opened three tabs, compared reviews and settled on: Maple Ridge, 8.4 miles, one good chocolate shop at the trailhead.';
 
-test.describe('skills — teaching it a job', () => {
-  test('initial state', async ({ page, shot }) => {
+test.describe('skills — teach what you pick, then try the task', () => {
+  test('teach browse → trail ready → try → forget', async ({ page, shot }) => {
     await page.goto('/#/skills');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Teaching it a job' }),
     ).toBeVisible();
-    await shot('skill-initial.png');
-  });
 
-  test('teach a skill — the fixed cycle of three, then the button locks', async ({
-    page,
-    shot,
-  }) => {
-    await page.goto('/#/skills');
-    await scrollToSelector(page, '.skill-stage');
-    const teach = page.getByRole('button', { name: 'Teach a skill', exact: true });
-
-    await teach.click();
-    await expect(page.getByText('Browse the web', { exact: true })).toBeVisible();
-    await expect(page.getByText('Learned!', { exact: true })).toBeVisible();
-    await scrollToSelector(page, '.skill-stage');
-    await shot('skill-one.png');
-
-    await teach.click();
-    await expect(page.getByText('Write code', { exact: true })).toBeVisible();
-
-    await teach.click();
-    await expect(page.getByText('Summarize', { exact: true })).toBeVisible();
-    await expect(page.locator('.skill-inv-count')).toHaveText('3 / 3');
-    await expect(teach).toBeDisabled();
-    await scrollToSelector(page, '.skill-stage');
-    await shot('skill-three.png');
-  });
-
-  test('task board — ready when the needed skill is learned', async ({
-    page,
-    shot,
-  }) => {
-    await page.goto('/#/skills');
-    await scrollToSelector(page, '.skill-stage');
-    const teach = page.getByRole('button', { name: 'Teach a skill', exact: true });
-    await teach.click();
-    await teach.click();
-    await teach.click();
-
-    await page
-      .getByRole('button', { name: /Find Portland's best hiking trail/ })
-      .click();
-    await expect(page.getByText('Ready! 🎒', { exact: true })).toBeVisible();
-    await expect(page.locator('.skill-card--needed')).toHaveText(/Browse the web/);
-    await scrollToSelector(page, '.skill-stage');
-    await shot('skill-task-ready.png');
-  });
-
-  test('task board — missing skill reads Not ready', async ({ page, shot }) => {
-    await page.goto('/#/skills');
-    await scrollToSelector(page, '.skill-stage');
-    await page.getByRole('button', { name: 'Teach a skill', exact: true }).click();
-
-    await page
-      .getByRole('button', { name: /Write a script to rename files/ })
-      .click();
-    await expect(page.getByText('Not ready', { exact: true })).toBeVisible();
-    await expect(page.getByText('Missing: Write code', { exact: true })).toBeVisible();
-    await scrollToSelector(page, '.skill-stage');
-    await shot('skill-task-missing.png');
-  });
-
-  test('forget a skill — the card goes, readiness flips', async ({ page, shot }) => {
-    await page.goto('/#/skills');
-    await scrollToSelector(page, '.skill-stage');
-    await page.getByRole('button', { name: 'Teach a skill', exact: true }).click();
-    await page
-      .getByRole('button', { name: /Find Portland's best hiking trail/ })
-      .click();
-    await expect(page.getByText('Ready! 🎒', { exact: true })).toBeVisible();
-
-    await page.getByRole('button', { name: 'Forget', exact: true }).click();
+    // --- sk-initial: three unpressed teach cards, results placeholder ---
+    await expect(page.locator('.skill-teach-card')).toHaveCount(3);
     await expect(
-      page.getByText('No skills yet — just a very smart mind', { exact: true }),
+      page.locator('.skill-teach-card .skill-teach[aria-pressed="true"]'),
+    ).toHaveCount(0);
+    await expect(page.locator('.skill-results')).toContainText(RESULTS_EMPTY);
+    await expect(
+      page.getByText('Teach a skill — pick which one first.', { exact: true }),
     ).toBeVisible();
+    await scrollToSelector(page, '.skill-stage');
+    await shot('sk-initial.png');
+
+    // --- sk-teach-browse: the user picks which skill to teach ---
+    const browseCard = page.locator('.skill-teach-card', { hasText: 'Browse the web' });
+    await browseCard.getByRole('button', { name: 'Teach', exact: true }).click();
+    await expect(page.locator('.skill-inv-count')).toHaveText('1 / 3');
+    await expect(page.getByText('Learned!', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('The backpack holds 1 of 3 skills.', { exact: true }),
+    ).toBeVisible();
+    await scrollToSelector(page, '.skill-stage');
+    await shot('sk-teach-browse.png');
+
+    // --- sk-ready: the trail task is ready, Try the task is offered ---
+    const trailTask = page.getByRole('button', { name: /Find Portland's best hiking trail/ });
+    await trailTask.click();
+    await expect(page.getByText('Ready! 🎒', { exact: true })).toBeVisible();
+    const tryBtn = page.getByRole('button', { name: 'Try the task', exact: true });
+    await expect(tryBtn).toBeEnabled();
+    await scrollToSelector(page, '.skill-stage');
+    await shot('sk-ready.png');
+
+    // --- sk-done: the task runs and prints its exact result ---
+    await tryBtn.click();
+    await expect(page.getByText(TRAIL_RESULT, { exact: true })).toBeVisible();
+    await expect(trailTask.getByText('Done ✓', { exact: true })).toBeVisible();
+    await expect(tryBtn).toBeDisabled();
+    await scrollToSelector(page, '.skill-stage');
+    await shot('sk-done.png');
+
+    // --- sk-forget: forgetting the skill un-readies the task and
+    // clears its result line ---
+    await page.getByRole('button', { name: 'Forget', exact: true }).click();
     await expect(page.getByText('Not ready', { exact: true })).toBeVisible();
     await expect(page.getByText('Missing: Browse the web', { exact: true })).toBeVisible();
+    await expect(page.locator('.skill-results')).toContainText(RESULTS_EMPTY);
+    await expect(trailTask.getByText('Done ✓', { exact: true })).toBeHidden();
     await scrollToSelector(page, '.skill-stage');
-    await shot('skill-forgotten.png');
+    await shot('sk-forget.png');
   });
 });

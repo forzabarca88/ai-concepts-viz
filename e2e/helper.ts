@@ -18,6 +18,7 @@
  *    (e.g. `shot('data-initial.png')`); the file is saved per-platform
  *    (`*-linux.png`) in `e2e/<spec>-snapshots/`.
  */
+import type { Page } from '@playwright/test';
 import { test as base, expect } from '@playwright/test';
 
 export const test = base.extend<{
@@ -75,3 +76,31 @@ export const test = base.extend<{
 });
 
 export { expect };
+
+/**
+ * Scroll a selector to sit just below the sticky header (deterministic
+ * offset — header height + 24px — so every capture frames the same
+ * slice of the page). `edge: 'bottom'` aligns the selector with the
+ * viewport bottom instead — used for shots whose subject sits at the
+ * foot of a tall stage (below the top-anchored crop). Playwright clicks
+ * can auto-scroll the target into view and re-frame the page, so this
+ * is re-applied after every interaction before capturing.
+ */
+export async function scrollToSelector(
+  page: Page,
+  selector: string,
+  edge: 'top' | 'bottom' = 'top',
+) {
+  await page.evaluate((args) => {
+    const [sel, e] = args as [string, 'top' | 'bottom'];
+    const el = document.querySelector(sel);
+    const header = document.querySelector('.site-header');
+    if (!el || !header) return;
+    const b = el.getBoundingClientRect();
+    const y =
+      e === 'top'
+        ? b.top + window.scrollY - (header.getBoundingClientRect().height + 24)
+        : b.bottom + window.scrollY - window.innerHeight;
+    window.scrollTo(0, y);
+  }, [selector, edge]);
+}

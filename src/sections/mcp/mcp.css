@@ -89,86 +89,25 @@
   font-size: 0.75rem;
 }
 
-/* ---------- column 2: the socket SVG ---------- */
+/* ---------- column 2: the 3D socket ----------
+   A fixed-height column that replaces the old SVG socket. The
+   createStageKit kit appends its (absolutely positioned) blit
+   canvas inside this wrapper; 252px keeps the framing invariant. */
 .page--mcp .mcp-col--socket {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.page--mcp .mc-svg {
+.page--mcp .mcp-canvas-wrap {
   width: 100%;
-  max-width: 190px;
-  height: auto;
-}
-
-.page--mcp .mc-svg text {
-  font-family: var(--font-mono);
-}
-
-/* the socket block + its three empty slots (dark = the openings) */
-.page--mcp .mc-block {
-  fill: var(--stage-2);
-  stroke: rgba(159, 168, 188, 0.4);
-  stroke-width: 2;
-}
-
-.page--mcp .mc-slot {
-  fill: var(--stage);
-  stroke: rgba(159, 168, 188, 0.35);
-  stroke-width: 1.5;
-}
-
-.page--mcp .mc-portlabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  fill: var(--on-stage-soft);
-}
-
-/* docked plug head — one colour per server (matches its cable) */
-.page--mcp .mc-plughead {
-  fill: var(--stage);
-  stroke-width: 2.5;
-}
-
-/* the cable, drawn to its final state only */
-.page--mcp .mc-cable {
-  stroke-width: 5;
-  stroke-linecap: round;
-}
-
-/* the mint LED on a seated plug: this line is live */
-.page--mcp .mc-led {
-  fill: var(--mint);
-}
-
-/* per-server signal colours */
-.page--mcp .mc-cable--files,
-.page--mcp .mc-plughead--files {
-  stroke: var(--amber);
-}
-
-.page--mcp .mc-cabledot--files {
-  fill: var(--amber);
-}
-
-.page--mcp .mc-cable--calendar,
-.page--mcp .mc-plughead--calendar {
-  stroke: var(--accent-glow);
-}
-
-.page--mcp .mc-cabledot--calendar {
-  fill: var(--accent-glow);
-}
-
-.page--mcp .mc-cable--maps,
-.page--mcp .mc-plughead--maps {
-  stroke: var(--mint);
-}
-
-.page--mcp .mc-cabledot--maps {
-  fill: var(--mint);
+  height: 252px;
+  position: relative;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(420px 220px at 50% 42%, rgba(110, 133, 255, 0.1), transparent 70%),
+    var(--stage);
 }
 
 /* ---------- column 3: server plugs ---------- */
@@ -262,6 +201,42 @@
   display: none;
 }
 
+/* ---------- the reply panel (always present; the fixed min-height
+   keeps the stage the same size in every state) ---------- */
+.page--mcp .mcp-reply {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 96px;
+  margin-top: var(--space-4);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--stage-2);
+  border-radius: var(--radius-md);
+  background: rgba(19, 28, 51, 0.55);
+}
+
+.page--mcp .mcp-reply-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--mcp .mcp-reply-text {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--on-stage);
+}
+
+/* the placeholder tone until the app is asked */
+.page--mcp .mcp-reply-text--empty {
+  color: var(--on-stage-soft);
+}
+
 /* ---------- stage bar ---------- */
 .page--mcp .mcp-stage .stage-bar {
   margin-top: auto;
@@ -272,9 +247,5 @@
   .page--mcp .mcp-grid {
     grid-template-columns: 1fr;
     gap: var(--space-4);
-  }
-
-  .page--mcp .mc-svg {
-    max-width: 220px;
   }
 }

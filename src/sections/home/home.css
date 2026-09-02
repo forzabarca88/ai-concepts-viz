@@ -127,9 +127,19 @@
 }
 
 /* fixed height for the variable body (candidates + reveal ↔ result
-   card) so the stage never changes size between duel states */
+   card) so the stage never changes size between duel states. Sized to
+   the largest state (mismatch-reveal): measured 350.922px at
+   ≥480px viewports → 351px; the reveal wraps to extra lines on narrow
+   phones (373.313px at 360–479px, 395.703px at 320px) → 396px there,
+   so no state clips at any supported width. */
 .page--home .nt-body {
-  min-height: 322px;
+  height: 351px;
+}
+
+@media (max-width: 479px) {
+  .page--home .nt-body {
+    height: 396px;
+  }
 }
 
 /* the author `display` rules above (.nt-cands flex, .btn inline-flex)

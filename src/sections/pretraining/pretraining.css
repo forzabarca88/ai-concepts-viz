@@ -3,6 +3,10 @@
    Every rule is scoped under .page--pretraining.
    ============================================================ */
 
+/* ---------- stage + 3D bowl layer ---------- */
+/* The 3D layer fills the stage (shared .stage-3d-layer utility, z 0);
+   the kit's canvas + blit live inside it, behind the stage UI. */
+
 /* ---------- stage head ---------- */
 .page--pretraining .pre-head {
   display: flex;
@@ -16,6 +20,69 @@
   max-width: 56ch;
   font-size: var(--text-small);
   color: var(--on-stage-soft);
+}
+
+/* ---------- diet picker (the trade-off decision) ---------- */
+.page--pretraining .pre-diets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.page--pretraining .pre-diets-label {
+  margin-right: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--on-stage-soft);
+}
+
+.page--pretraining .pre-diet {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid rgba(148, 160, 185, 0.28);
+  border-radius: var(--radius-chip);
+  background: rgba(22, 32, 58, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--on-stage-soft);
+  cursor: pointer;
+  transition:
+    color var(--dur-med) var(--ease-out),
+    border-color var(--dur-med) var(--ease-out),
+    background var(--dur-med) var(--ease-out),
+    box-shadow var(--dur-med) var(--ease-out);
+}
+
+.page--pretraining .pre-diet:hover {
+  border-color: var(--accent-glow);
+  color: var(--on-stage);
+}
+
+/* The pressed diet wears its own accent — the same hues its bowl
+    glows with in the 3D layer behind. */
+.page--pretraining .pre-diet--0[aria-pressed='true'] {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(255, 176, 32, 0.1);
+  box-shadow: 0 0 16px rgba(255, 176, 32, 0.2);
+}
+
+.page--pretraining .pre-diet--1[aria-pressed='true'] {
+  border-color: var(--coral);
+  color: var(--coral);
+  background: rgba(255, 107, 94, 0.1);
+  box-shadow: 0 0 16px rgba(255, 107, 94, 0.2);
+}
+
+.page--pretraining .pre-diet--2[aria-pressed='true'] {
+  border-color: var(--mint);
+  color: var(--mint);
+  background: rgba(34, 196, 142, 0.1);
+  box-shadow: 0 0 16px rgba(34, 196, 142, 0.2);
 }
 
 .page--pretraining .pre-toggle-row {
@@ -213,6 +280,12 @@
 }
 
 /* ---------- base-model reveal panel ---------- */
+/* Fixed-height zone: the stage (and the 3D canvas behind it) never
+   resizes between the hidden/revealed states. */
+.page--pretraining .pre-raw-zone {
+  min-height: 236px;
+}
+
 .page--pretraining .pre-raw {
   margin-top: var(--space-6);
   padding: var(--space-6);

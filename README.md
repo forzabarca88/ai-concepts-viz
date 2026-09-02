@@ -2,7 +2,7 @@
 
 A friendly, interactive tour of large language models for a **non-technical** audience. No math required — just curiosity.
 
-The site is a ten-lesson course. Every lesson teaches one LLM concept through an original, hands-on visualisation (some 3D) that is deliberately calm and well-crafted. The golden rule: **make learning about LLMs fun, not intimidating** (see `SPEC.md`).
+The site is a ten-lesson course. Every lesson teaches one LLM concept through an original, hands-on visualisation in which **you make the decisions** — and 10 of the 11 lessons add a 3D layer — all deliberately calm and well-crafted. The golden rule: **make learning about LLMs fun, not intimidating** (see `SPEC.md`).
 
 Technically it is a static single-page app — **Vite 7 + vanilla TypeScript + hash routing + Three.js** — with every dependency pinned to an exact version, so it builds identically everywhere and deploys to GitHub Pages as-is.
 
@@ -61,7 +61,7 @@ Vitest + `@testing-library/dom` in jsdom. A test clicks a real control (button, 
 
 ### 2. Screenshots — every state, byte-stable
 
-Playwright, pinned to `@playwright/test@1.61.1` (which matches the locally cached Chromium revision, so no browser download is needed during local development — on a fresh environment or in CI, run `npx playwright install --with-deps chromium` first, exactly as the CI workflow does), drives the production build at 1280×800. Each section has an `*-initial` shot plus one shot per interactive/transition state; the **72 baselines** are committed under `e2e/*-snapshots/` (per-platform `*-linux.png` names).
+Playwright, pinned to `@playwright/test@1.61.1` (which matches the locally cached Chromium revision, so no browser download is needed during local development — on a fresh environment or in CI, run `npx playwright install --with-deps chromium` first, exactly as the CI workflow does), drives the production build at 1280×800. Each section has an `*-initial` shot plus one shot per interactive/transition state; the **63 baselines** are committed under `e2e/*-snapshots/` (per-platform `*-linux.png` names).
 
 **The `.pw` freeze protocol.** Screenshot determinism comes from freezing time, not from tolerance:
 
@@ -75,6 +75,7 @@ Playwright, pinned to `@playwright/test@1.61.1` (which matches the locally cache
 
 - **Seeded PRNG only:** `mulberry32` in `src/three/helpers.ts`; `Math.random()` is banned in any render/test path (3D point positions, knob schedules, particle mixes are all seed-derived).
 - **Fixed copy:** every example sentence, model answer and counter value is a hardcoded list — nothing is generated at runtime.
+- **User-typed text (the tokenisation section)** is tokenized by a fixed dictionary plus a deterministic djb2 hash of the input — a pure function of the input, never of time or randomness.
 - **No `Date`, no network, no ambient time.**
 - **State-invariant stage heights:** a section's stage keeps the same height in every state (fixed-height scroll regions pinned to the bottom), so all states of a section share one scroll position and one framing.
 - **No tweens:** transitions are discrete, control-gated states applied immediately.

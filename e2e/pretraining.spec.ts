@@ -1,62 +1,56 @@
-import type { Page } from '@playwright/test';
-import { test, expect } from './helper';
+import { test, expect, scrollToSelector } from './helper';
 
-/**
- * Scroll a selector to sit just below the sticky header (deterministic
- * offset — header height + 24px — so every capture frames the same
- * slice of the page). Playwright clicks/keypresses can auto-scroll the
- * target into view and re-frame the page, so this is re-applied after
- * every interaction before capturing.
- */
-async function scrollToSelector(page: Page, selector: string) {
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    const header = document.querySelector('.site-header');
-    if (!el || !header) return;
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (header.getBoundingClientRect().height + 24);
-    window.scrollTo(0, y);
-  }, selector);
-}
-
-test.describe('pretraining — guess the next word, a trillion times', () => {
-  test('initial state', async ({ page, shot }) => {
+test.describe('pretraining — pick the diet, watch the bowl light up', () => {
+  test('initial state — mixed diet, empty bowl', async ({ page, shot }) => {
     await page.goto('/#/pretraining');
     await expect(
       page.getByRole('heading', { level: 1, name: 'Guess the next word. A trillion times.' }),
     ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Everything mixed' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.pre-badge-at')).toHaveText(['200', '300', '1B', '15T']);
+    await scrollToSelector(page, '.pre-stage');
     await shot('pre-initial.png');
   });
 
-  test('teach a batch ×3 — counter climbs, feed appends, badges unlock', async ({
+  test('switch to Math & code — the trade-off re-shares the thresholds', async ({
     page,
     shot,
   }) => {
     await page.goto('/#/pretraining');
     await scrollToSelector(page, '.pre-stage');
+
+    await page.getByRole('button', { name: 'Math & code' }).click();
+    await expect(page.getByRole('button', { name: 'Math & code' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('.pre-badge-at')).toHaveText(['100', '800', '200M', '15T']);
+    await scrollToSelector(page, '.pre-stage');
+    await shot('pre-diet-math.png');
+  });
+
+  test('Math & code diet: three batches → 300 tokens, Counting only', async ({
+    page,
+    shot,
+  }) => {
+    await page.goto('/#/pretraining');
+    await scrollToSelector(page, '.pre-stage');
+
+    await page.getByRole('button', { name: 'Math & code' }).click();
     const batch = page.getByRole('button', { name: 'Teach a batch' });
-    const counter = page.locator('.pre-counter');
-
-    await batch.click();
-    await expect(counter).toHaveText('100');
-    await scrollToSelector(page, '.pre-stage');
-    await shot('pre-batch-1.png');
-
-    await batch.click();
-    await expect(counter).toHaveText('200');
-    await scrollToSelector(page, '.pre-stage');
-    await shot('pre-batch-2.png');
-
-    await batch.click();
-    await expect(counter).toHaveText('300');
-    await expect(page.locator('.pre-skill-count')).toHaveText('Skills unlocked: 2 / 4');
+    for (let i = 0; i < 3; i += 1) await batch.click();
+    await expect(page.locator('.pre-counter')).toHaveText('300');
+    await expect(page.locator('.pre-skill-count')).toHaveText('Skills unlocked: 1 / 4');
     await scrollToSelector(page, '.pre-stage');
     await shot('pre-batch-3.png');
   });
 
-  test('log slider to 15T — the real Llama 3.1 figure', async ({ page, shot }) => {
+  test('log slider to 15T — the real Llama 3.1 figure, every skill unlocked', async ({
+    page,
+    shot,
+  }) => {
     await page.goto('/#/pretraining');
     await scrollToSelector(page, '.pre-stage');
     const slider = page.locator('.pre-scale-slider');
@@ -72,7 +66,7 @@ test.describe('pretraining — guess the next word, a trillion times', () => {
     await expect(page.getByRole('button', { name: 'Teach a batch' })).toBeDisabled();
     await expect(page.locator('.pre-skill-count')).toHaveText('Skills unlocked: 4 / 4');
     await scrollToSelector(page, '.pre-stage');
-    await shot('pre-slider-15t.png');
+    await shot('pre-15t.png');
   });
 
   test('see the raw model — the base-model reflex', async ({ page, shot }) => {
@@ -84,6 +78,6 @@ test.describe('pretraining — guess the next word, a trillion times', () => {
     await expect(page.getByText('No meaning yet — just the next-word reflex.')).toBeVisible();
     // Frame the revealed panel itself (it sits below the stage bar).
     await scrollToSelector(page, '.pre-raw');
-    await shot('pre-raw-revealed.png');
+    await shot('pre-raw.png');
   });
 });
